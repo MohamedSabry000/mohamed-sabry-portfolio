@@ -1,6 +1,6 @@
-import { Bot, CheckCircle2, CircleAlert, RefreshCw } from 'lucide-react'
+import { Bot, CheckCircle2, CircleAlert, Database, RefreshCw } from 'lucide-react'
 import { useActionState, useEffect, useState, useTransition } from 'react'
-import { checkAgentHealth } from '../../agent/agentService'
+import { checkAgentHealth, type AgentHealth } from '../../agent/agentService'
 import { Button, SubmitButton } from '../../components/ui/Button'
 import { Field, Textarea, Toggle } from '../../components/ui/Field'
 import { useLanguage } from '../../context/LanguageContext'
@@ -16,7 +16,7 @@ export default function AgentPage() {
   const { notify } = useToast()
   const dispatch = useAppDispatch()
   const agent = useAppSelector((state) => state.agent)
-  const [health, setHealth] = useState<{ reachable: boolean; llm: boolean } | null>(null)
+  const [health, setHealth] = useState<AgentHealth | null>(null)
   const [checking, startCheck] = useTransition()
 
   const refresh = () =>
@@ -78,6 +78,29 @@ export default function AgentPage() {
         <Button variant="secondary" onClick={refresh} disabled={checking}>
           <RefreshCw className={`size-4 ${checking ? 'animate-spin' : ''}`} />
         </Button>
+      </div>
+
+      <div className="card mb-6 flex flex-wrap items-center gap-4 p-5">
+        <span className="grid size-12 place-items-center rounded-xl bg-[#f03e2f] text-white">
+          <Database className="size-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-slate-500">{t('admin.sanityStatus')}</p>
+          {health === null ? (
+            <p className="font-semibold">…</p>
+          ) : health.sanity.configured ? (
+            <>
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+                <CheckCircle2 className="size-4 shrink-0" /> {t('admin.sanityConnected')}
+              </p>
+              {health.sanity.logging && <p className="mt-1 text-xs text-slate-500">{t('admin.sanityLogging')}</p>}
+            </>
+          ) : (
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
+              <CircleAlert className="size-4 shrink-0" /> {t('admin.sanityNotConfigured')}
+            </p>
+          )}
+        </div>
       </div>
 
       <form action={saveAction} className="card space-y-5 p-6" key={JSON.stringify(agent)}>

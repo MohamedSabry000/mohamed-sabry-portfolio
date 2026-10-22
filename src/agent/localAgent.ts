@@ -152,11 +152,14 @@ const stopwords = new Set([
 const tokens = (text: string) => normalize(text).split(' ').filter((word) => word.length > 2 && !stopwords.has(word))
 
 /** Finds the FAQ entry whose question best matches the visitor's question. */
-export function findFaq(question: string, portfolio: PortfolioState): FaqItem | undefined {
+export function findFaq(question: string, items: FaqItem[]): FaqItem | undefined {
+  const text = normalize(question)
+  const byKeyword = items.find((faq) => faq.keywords?.some((keyword) => normalize(keyword).length > 1 && hasKeyword(text, keyword)))
+  if (byKeyword) return byKeyword
   const asked = new Set(tokens(question))
   if (asked.size < 2) return undefined
   let best: { faq: FaqItem; score: number } | undefined
-  for (const faq of portfolio.faqs ?? []) {
+  for (const faq of items) {
     for (const text of [faq.question.en, faq.question.ar]) {
       const words = [...new Set(tokens(text))]
       const hits = words.filter((word) => asked.has(word)).length
@@ -180,6 +183,7 @@ export function localAgentReply(
   portfolio: PortfolioState,
   agent: AgentSettings,
   uiLang: Lang,
+  knowledge: FaqItem[] = [],
 ): AgentReply {
   const lang = detectLang(question, uiLang)
   const ar = lang === 'ar'
@@ -194,8 +198,11 @@ export function localAgentReply(
 
   const strongIntent = intent && (scores[intent] ?? 0) >= 4
 
-  const faq = findFaq(question, portfolio)
-  if (faq && !project) return { text: l(faq.answer), action: action('faq') }
+  const faq = findFaq(question, [...(portfolio.faqs ?? []), ...knowledge])
+  if (faq && !project) {
+    const inFaqSection = (portfolio.faqs ?? []).some((item) => item.id === faq.id)
+    return { text: l(faq.answer), action: inFaqSection ? action('faq') : undefined }
+  }
 
   if (project && !(intent && ['contact', 'salary', 'cv', 'availability'].includes(intent))) {
     const links = [

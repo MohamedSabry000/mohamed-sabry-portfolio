@@ -3,12 +3,14 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const app = express()
 try {
   process.loadEnvFile()
 } catch {
   // no .env file
 }
+const { buildSanityPrompt, getAssistantContent, logConversation, sanityStatus } = await import('./sanity.ts')
+
+const app = express()
 
 const PORT = Number(process.env.PORT ?? 8787)
 const API_KEY = process.env.OPENAI_API_KEY ?? ''
@@ -30,7 +32,44 @@ function rateLimited(ip: string) {
 }
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, llm: Boolean(API_KEY), model: API_KEY ? MODEL : null })
+  res.json({ ok: true, llm: Boolean(API_KEY), model: API_KEY ? MODEL : null, sanity: sanityStatus() })
+})
+
+// Assistant settings + knowledge managed in Sanity (public, read-only).
+app.get('/api/assistant', async (_req, res) => {
+  const content = await getAssistantContent()
+  res.setHeader('cache-control', 'public, max-age=30')
+  res.json(content)
+})
+
+app.post('/api/chat/log', async (req, res) => {
+  if (!sanityStatus().logging) {
+    res.status(204).end()
+    return
+  }
+  if (rateLimited(`log:${req.ip ?? 'unknown'}`)) {
+    res.status(429).json({ error: 'rate_limited' })
+    return
+  }
+  const body = (req.body ?? {}) as Record<string, unknown>
+  const entry = {
+    sessionId: String(body.sessionId ?? ''),
+    lang: body.lang === 'ar' ? 'ar' : 'en',
+    question: String(body.question ?? '').slice(0, 2000),
+    answer: String(body.answer ?? '').slice(0, 4000),
+    source: body.source === 'llm' ? 'llm' : 'local',
+  }
+  if (!entry.question || !entry.answer) {
+    res.status(400).json({ error: 'invalid' })
+    return
+  }
+  try {
+    await logConversation(entry)
+    res.status(204).end()
+  } catch (error) {
+    console.error('sanity log failed', error instanceof Error ? error.message : error)
+    res.status(502).json({ error: 'log_failed' })
+  }
 })
 
 interface ChatBody {
@@ -57,6 +96,8 @@ app.post('/api/chat', async (req, res) => {
     return
   }
 
+  const sanityPrompt = buildSanityPrompt(await getAssistantContent()).slice(0, 12000)
+
   try {
     const upstream = await fetch(`${BASE_URL}/chat/completions`, {
       method: 'POST',
@@ -66,7 +107,7 @@ app.post('/api/chat', async (req, res) => {
         stream: true,
         temperature: 0.4,
         max_tokens: 500,
-        messages: [{ role: 'system', content: String(system).slice(0, 20000) }, ...cleaned],
+        messages: [{ role: 'system', content: String(system).slice(0, 20000) + sanityPrompt }, ...cleaned],
       }),
     })
     if (!upstream.ok || !upstream.body) {
@@ -111,5 +152,7 @@ if (existsSync(distDir)) {
 }
 
 app.listen(PORT, () => {
+  const sanity = sanityStatus()
   console.log(`API server on http://localhost:${PORT} — LLM ${API_KEY ? `enabled (${MODEL})` : 'disabled (local agent fallback)'}`)
+  console.log(`Sanity: ${sanity.configured ? `connected (dataset ${sanity.dataset}${sanity.logging ? ', chat logging on' : ''})` : 'not configured'}`)
 })

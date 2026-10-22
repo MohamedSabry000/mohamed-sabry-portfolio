@@ -160,6 +160,10 @@ const en = {
   'admin.agentConnected': 'Connected',
   'admin.agentNotConfigured': 'Not configured — set OPENAI_API_KEY on the server. Local engine is used.',
   'admin.agentUnreachable': 'API server unreachable — local engine is used.',
+  'admin.sanityStatus': 'Sanity CMS',
+  'admin.sanityConnected': 'Connected — assistant settings and knowledge in Sanity override the values below.',
+  'admin.sanityLogging': 'Visitor chats are saved to Sanity.',
+  'admin.sanityNotConfigured': 'Not configured — set SANITY_PROJECT_ID on the server to manage the assistant in Sanity.',
   'admin.available': 'Available for work',
 } as const
 
@@ -327,6 +331,10 @@ const ar: Record<TranslationKey, string> = {
   'admin.agentConnected': 'متصل',
   'admin.agentNotConfigured': 'غير مُعد — أضف OPENAI_API_KEY على الخادم. يتم استخدام المحرك المحلي.',
   'admin.agentUnreachable': 'تعذر الوصول إلى الخادم — يتم استخدام المحرك المحلي.',
+  'admin.sanityStatus': 'Sanity CMS',
+  'admin.sanityConnected': 'متصل — إعدادات المساعد ومعلوماته في Sanity تتجاوز القيم أدناه.',
+  'admin.sanityLogging': 'يتم حفظ محادثات الزوار في Sanity.',
+  'admin.sanityNotConfigured': 'غير مُعد — اضبط SANITY_PROJECT_ID على الخادم لإدارة المساعد من Sanity.',
   'admin.available': 'متاح للعمل',
 }
 

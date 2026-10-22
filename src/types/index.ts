@@ -93,6 +93,7 @@ export interface FaqItem {
   id: string
   question: Localized
   answer: Localized
+  keywords?: string[]
 }
 
 export interface SpokenLanguage {

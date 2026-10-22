@@ -4,6 +4,7 @@ import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router'
 import { PersistGate } from 'redux-persist/integration/react'
 import App from './App'
+import { getAssistantContent } from './agent/sanityContent'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -11,6 +12,9 @@ import { ToastProvider } from './context/ToastContext'
 import { persistor, store } from './store'
 import './index.css'
 import './styles/effects.less'
+
+// Start loading the Sanity-managed assistant content before the chat widget renders.
+void getAssistantContent()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

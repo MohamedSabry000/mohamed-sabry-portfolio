@@ -6,10 +6,10 @@ import PortfolioPage from '../pages/PortfolioPage'
 import { renderWithProviders } from '../test/utils'
 
 describe('Portfolio page', () => {
-  it('renders the hero in English (LTR)', () => {
+  it('renders the hero in English (LTR)', async () => {
     renderWithProviders(<PortfolioPage />)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Mohamed Sabry')
-    expect(document.documentElement.dir).toBe('ltr')
+    await waitFor(() => expect(document.documentElement.dir).toBe('ltr'))
   })
 
   it('switches to Arabic with RTL direction', async () => {
@@ -35,7 +35,7 @@ describe('Portfolio page', () => {
   it('chats with the AI agent (local engine)', async () => {
     renderWithProviders(<PortfolioPage />)
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Open AI assistant' }))
+    await user.click(await screen.findByRole('button', { name: 'Open AI assistant' }))
     await user.type(screen.getByLabelText(/Ask me anything/), 'What is his current role?')
     await user.click(screen.getByRole('button', { name: 'Send' }))
     expect(await screen.findByText(/currently works as/)).toBeInTheDocument()

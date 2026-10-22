@@ -1,4 +1,4 @@
-import type { AgentSettings, ChatAction, ChatMessage, Lang, PortfolioState } from '../types'
+import type { AgentSettings, ChatAction, ChatMessage, FaqItem, Lang, PortfolioState } from '../types'
 import { buildSystemPrompt } from './knowledge'
 import { detectSectionAction, localAgentReply } from './localAgent'
 
@@ -8,21 +8,29 @@ export interface AgentResult {
   action?: ChatAction
 }
 
-let healthCache: { llm: boolean; checkedAt: number } | null = null
+export interface AgentHealth {
+  reachable: boolean
+  llm: boolean
+  sanity: { configured: boolean; logging: boolean }
+}
 
-export async function checkAgentHealth(force = false): Promise<{ reachable: boolean; llm: boolean }> {
+const noSanity = { configured: false, logging: false }
+let healthCache: { llm: boolean; sanity: AgentHealth['sanity']; checkedAt: number } | null = null
+
+export async function checkAgentHealth(force = false): Promise<AgentHealth> {
   if (!force && healthCache && Date.now() - healthCache.checkedAt < 60_000) {
-    return { reachable: true, llm: healthCache.llm }
+    return { reachable: true, llm: healthCache.llm, sanity: healthCache.sanity }
   }
   try {
     const res = await fetch('/api/health', { headers: { accept: 'application/json' } })
     if (!res.ok || !res.headers.get('content-type')?.includes('json')) throw new Error('unreachable')
-    const data = (await res.json()) as { llm?: boolean }
-    healthCache = { llm: Boolean(data.llm), checkedAt: Date.now() }
-    return { reachable: true, llm: healthCache.llm }
+    const data = (await res.json()) as { llm?: boolean; sanity?: Partial<AgentHealth['sanity']> }
+    const sanity = { configured: Boolean(data.sanity?.configured), logging: Boolean(data.sanity?.logging) }
+    healthCache = { llm: Boolean(data.llm), sanity, checkedAt: Date.now() }
+    return { reachable: true, llm: healthCache.llm, sanity }
   } catch {
-    healthCache = { llm: false, checkedAt: Date.now() }
-    return { reachable: false, llm: false }
+    healthCache = { llm: false, sanity: noSanity, checkedAt: Date.now() }
+    return { reachable: false, llm: false, sanity: noSanity }
   }
 }
 
@@ -59,10 +67,11 @@ export async function getAgentReply(params: {
   portfolio: PortfolioState
   agent: AgentSettings
   lang: Lang
+  knowledge?: FaqItem[]
   onToken?: (partial: string) => void
 }): Promise<AgentResult> {
-  const { question, history, portfolio, agent, lang, onToken } = params
-  const local = (): AgentResult => ({ ...localAgentReply(question, portfolio, agent, lang), source: 'local' })
+  const { question, history, portfolio, agent, lang, knowledge = [], onToken } = params
+  const local = (): AgentResult => ({ ...localAgentReply(question, portfolio, agent, lang, knowledge), source: 'local' })
 
   if (agent.mode === 'local') return local()
 
@@ -87,4 +96,25 @@ export async function getAgentReply(params: {
     healthCache = null
     return local()
   }
+}
+
+const SESSION_KEY = 'ms-chat-session'
+
+function chatSessionId() {
+  let id = sessionStorage.getItem(SESSION_KEY)
+  if (!id) {
+    id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+    sessionStorage.setItem(SESSION_KEY, id)
+  }
+  return id
+}
+
+/** Saves a question/answer pair to Sanity through the API server (fire and forget). */
+export function logChatToSanity(entry: { question: string; answer: string; source: 'llm' | 'local'; lang: Lang }) {
+  void fetch('/api/chat/log', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...entry, sessionId: chatSessionId() }),
+    keepalive: true,
+  }).catch(() => {})
 }

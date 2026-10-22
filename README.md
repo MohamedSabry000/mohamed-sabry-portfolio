@@ -49,6 +49,30 @@ From the admin panel you can:
 - Posts are written in a safe Markdown subset (headings, lists, links, code blocks, quotes). Raw HTML is not rendered.
 - The FAQ section is an accessible accordion. The AI assistant answers matching questions from the FAQ and can list blog articles.
 
+## Sanity CMS for the AI assistant
+
+The assistant's settings and an extra knowledge base can be managed in [Sanity](https://www.sanity.io). The Studio lives in `studio/`.
+
+| Document | Purpose |
+| --- | --- |
+| **Assistant settings** (singleton) | Name, greeting, response engine, extra AI instructions, suggested questions. Values set here override the admin panel. |
+| **Knowledge base** | Question/answer pairs with optional trigger keywords. The built-in engine answers matching questions with them, and they are added to the AI model prompt. |
+| **Visitor conversations** | Read-only log of visitor chats (only when `SANITY_WRITE_TOKEN` is set). |
+
+Setup:
+
+1. Create a project at [sanity.io/manage](https://www.sanity.io/manage) (or run `npx sanity init` inside `studio/`) and note the project ID.
+2. Install and run the Studio:
+   ```bash
+   cd studio && npm install
+   SANITY_STUDIO_PROJECT_ID=<id> npm run dev   # http://localhost:3333
+   ```
+   Or deploy it with `npm run deploy` inside `studio/`.
+3. Optionally seed the settings and starter knowledge from the portfolio data: `SANITY_STUDIO_PROJECT_ID=<id> npm run studio:seed` (uses your `sanity login` session).
+4. Set `SANITY_PROJECT_ID` (and `SANITY_DATASET`) for the API server. Add `SANITY_WRITE_TOKEN` (an Editor token) to save visitor chats.
+
+The browser never talks to Sanity directly: the API server reads the content (`GET /api/assistant`, cached for 60 seconds) and writes chat logs (`POST /api/chat/log`). Conversation documents use private IDs (`aiConversation.<session>`) so they are not readable from the public dataset API. If Sanity is not configured, the assistant uses the admin panel settings.
+
 ## AI assistant
 
 The chat widget always works offline: a local engine answers questions in English or Arabic using the portfolio data (skills, projects, experience, contact, CV, and more), and it can scroll to the relevant section.

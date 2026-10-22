@@ -1,7 +1,8 @@
 import { Bot, MessageCircle, SendHorizonal, Sparkles, Trash2, X } from 'lucide-react'
-import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react'
+import { use, useEffect, useOptimistic, useRef, useState, useTransition } from 'react'
 import { useFormStatus } from 'react-dom'
-import { getAgentReply } from '../../agent/agentService'
+import { getAgentReply, logChatToSanity } from '../../agent/agentService'
+import { getAssistantContent, knowledgeAsFaq, mergeAgentSettings } from '../../agent/sanityContent'
 import { useChatUI } from '../../context/ChatContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { cn, uid } from '../../lib/utils'
@@ -31,7 +32,10 @@ export default function ChatWidget() {
   const dispatch = useAppDispatch()
   const messages = useAppSelector((state) => state.chat.messages)
   const portfolio = useAppSelector((state) => state.portfolio)
-  const agent = useAppSelector((state) => state.agent)
+  const localAgent = useAppSelector((state) => state.agent)
+  // React 19: `use` suspends until the Sanity-managed assistant content has loaded.
+  const sanity = use(getAssistantContent())
+  const agent = mergeAgentSettings(localAgent, sanity.settings)
   const [streaming, setStreaming] = useState('')
   const [, startTransition] = useTransition()
   const listRef = useRef<HTMLDivElement>(null)
@@ -40,7 +44,8 @@ export default function ChatWidget() {
   // React 19: show the visitor's message instantly while the agent is thinking.
   const [optimisticMessages, addOptimistic] = useOptimistic(
     messages,
-    (state: ChatMessage[], message: ChatMessage) => [...state, message],
+    (state: ChatMessage[], message: ChatMessage) =>
+      state.some((m) => m.id === message.id) ? state : [...state, message],
   )
   const isThinking = optimisticMessages.length > messages.length
 
@@ -70,8 +75,10 @@ export default function ChatWidget() {
       portfolio,
       agent,
       lang,
+      knowledge: knowledgeAsFaq(sanity),
       onToken: setStreaming,
     })
+    if (sanity.logging) logChatToSanity({ question, answer: reply.text, source: reply.source, lang })
     setStreaming('')
     dispatch(appendChatMessage(userMessage))
     dispatch(
@@ -90,6 +97,8 @@ export default function ChatWidget() {
   }
 
   const askSuggestion = (question: string) => startTransition(async () => send(question))
+
+  if (!agent.enabled) return null
 
   return (
     <>

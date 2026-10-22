@@ -56,7 +56,8 @@ The assistant's settings and an extra knowledge base can be managed in [Sanity](
 | Document | Purpose |
 | --- | --- |
 | **Assistant settings** (singleton) | Name, greeting, response engine, extra AI instructions, suggested questions. Values set here override the admin panel. |
-| **Knowledge base** | Question/answer pairs with optional trigger keywords. The built-in engine answers matching questions with them, and they are added to the AI model prompt. |
+| **FAQ** | The existing `faq` documents (plain English question/answer, keywords, category, priority) are used as assistant knowledge too. |
+| **Knowledge base** | Bilingual question/answer pairs with optional trigger keywords. The built-in engine answers matching questions with them, and they are added to the AI model prompt. |
 | **Visitor conversations** | Read-only log of visitor chats (only when `SANITY_WRITE_TOKEN` is set). |
 
 Setup:

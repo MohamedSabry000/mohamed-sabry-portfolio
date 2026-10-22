@@ -154,18 +154,24 @@ const tokens = (text: string) => normalize(text).split(' ').filter((word) => wor
 /** Finds the FAQ entry whose question best matches the visitor's question. */
 export function findFaq(question: string, items: FaqItem[]): FaqItem | undefined {
   const text = normalize(question)
-  const byKeyword = items.find((faq) => faq.keywords?.some((keyword) => normalize(keyword).length > 1 && hasKeyword(text, keyword)))
-  if (byKeyword) return byKeyword
   const asked = new Set(tokens(question))
-  if (asked.size < 2) return undefined
   let best: { faq: FaqItem; score: number } | undefined
   for (const faq of items) {
-    for (const text of [faq.question.en, faq.question.ar]) {
-      const words = [...new Set(tokens(text))]
+    // Trigger keywords: a multi-word phrase is a strong signal, single words need company.
+    const keywordScore = (faq.keywords ?? [])
+      .map(normalize)
+      .filter((keyword, index, all) => keyword.length > 1 && all.indexOf(keyword) === index && hasKeyword(text, keyword))
+      .reduce((sum, keyword) => sum + (keyword.includes(' ') ? 2 : 1), 0)
+    let questionScore = 0
+    for (const variant of [faq.question.en, faq.question.ar]) {
+      const words = [...new Set(tokens(variant))]
       const hits = words.filter((word) => asked.has(word)).length
-      const score = hits / Math.max(words.length, asked.size)
-      if (hits >= 2 && score >= 0.5 && (!best || score > best.score)) best = { faq, score }
+      const ratio = hits / Math.max(words.length, asked.size, 1)
+      if ((hits >= 2 && ratio >= 0.5) || (hits >= 1 && ratio === 1)) questionScore = Math.max(questionScore, ratio)
     }
+    if (keywordScore < 2 && questionScore === 0) continue
+    const score = questionScore * 3 + keywordScore
+    if (!best || score > best.score) best = { faq, score }
   }
   return best?.faq
 }

@@ -14,6 +14,18 @@ describe('server Sanity integration', () => {
     expect(knowledge).toEqual([{ id: 'a', question: { en: 'Q', ar: '' }, answer: { en: 'A', ar: '' }, keywords: ['k'] }])
   })
 
+  it('accepts plain-string faq documents', () => {
+    const { knowledge } = normalizeContent({
+      knowledge: [{ id: 'faq-1', question: 'Where did you study?', answer: 'Benha University.', keywords: ['study'] }],
+    })
+    expect(knowledge[0]).toEqual({
+      id: 'faq-1',
+      question: { en: 'Where did you study?', ar: '' },
+      answer: { en: 'Benha University.', ar: '' },
+      keywords: ['study'],
+    })
+  })
+
   it('builds the extra prompt section only when there is knowledge', () => {
     expect(buildSanityPrompt({ knowledge: [] })).toBe('')
     expect(

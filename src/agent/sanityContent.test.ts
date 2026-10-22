@@ -39,4 +39,12 @@ describe('Sanity assistant content', () => {
     const ar = localAgentReply('كم فترة الإشعار؟', defaultPortfolio, defaultAgentSettings, 'ar', knowledge)
     expect(ar.text).toBe('شهر واحد.')
   })
+
+  it('does not let a single broad keyword hijack unrelated questions', () => {
+    const knowledge = [
+      { id: 'faq-react', question: { en: 'What is your experience with React?', ar: '' }, answer: { en: 'React answer', ar: '' }, keywords: ['React', 'hooks'] },
+    ]
+    expect(localAgentReply('Does he know React Native?', defaultPortfolio, defaultAgentSettings, 'en', knowledge).text).not.toBe('React answer')
+    expect(localAgentReply('What is your experience with React?', defaultPortfolio, defaultAgentSettings, 'en', knowledge).text).toBe('React answer')
+  })
 })

@@ -30,7 +30,7 @@ export interface AssistantContent {
 
 const ASSISTANT_QUERY = `{
   "settings": *[_id == "aiAssistant"][0]{ enabled, mode, name, greeting, instructions, suggestions[]{ en, ar } },
-  "knowledge": *[_type == "aiKnowledge" && active != false] | order(priority desc, _createdAt asc){
+  "knowledge": *[_type in ["aiKnowledge", "faq"] && active != false] | order(coalesce(priority, 0) desc, _createdAt asc){
     "id": _id, question, answer, "keywords": coalesce(keywords, [])
   }
 }`
@@ -51,7 +51,9 @@ const writeClient: SanityClient | null =
 
 export const sanityStatus = () => ({ configured: Boolean(readClient), logging: Boolean(writeClient), dataset })
 
+// Accepts both localized objects ({ en, ar }) and plain strings (e.g. the existing `faq` documents).
 const cleanLocalized = (value: unknown): Localized => {
+  if (typeof value === 'string') return { en: value.trim(), ar: '' }
   const v = (value ?? {}) as Partial<Localized>
   return { en: String(v.en ?? '').trim(), ar: String(v.ar ?? '').trim() }
 }
@@ -104,6 +106,7 @@ export function buildSanityPrompt(content: Pick<AssistantContent, 'knowledge'>) 
   return [
     '',
     '=== ADDITIONAL KNOWLEDGE (managed in Sanity CMS — treat as facts about Mohamed) ===',
+    'Some answers are written in Mohamed\'s own voice ("I …"); when using them, refer to him in the third person.',
     ...content.knowledge.map((k) => `- Q: ${k.question.en || k.question.ar} A: ${k.answer.en || k.answer.ar}`),
   ].join('\n')
 }

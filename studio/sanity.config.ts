@@ -6,7 +6,7 @@ import { ASSISTANT_ID, schemaTypes, singletonTypes } from './schemaTypes'
 export default defineConfig({
   name: 'default',
   title: 'Mohamed Sabry — AI Assistant',
-  projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? 'your-project-id',
+  projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? 'rdln7m0z',
   dataset: process.env.SANITY_STUDIO_DATASET ?? 'production',
   plugins: [
     structureTool({
@@ -19,7 +19,8 @@ export default defineConfig({
               .id(ASSISTANT_ID)
               .child(S.document().schemaType('aiAssistant').documentId(ASSISTANT_ID)),
             S.divider(),
-            S.documentTypeListItem('aiKnowledge').title('Knowledge base'),
+            S.documentTypeListItem('faq').title('FAQ'),
+            S.documentTypeListItem('aiKnowledge').title('Knowledge base (bilingual)'),
             S.documentTypeListItem('aiConversation').title('Visitor conversations'),
           ]),
     }),

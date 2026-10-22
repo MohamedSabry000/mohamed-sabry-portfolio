@@ -22,3 +22,16 @@ describe('CV links', () => {
     ])
   })
 })
+
+describe('v3 migration', () => {
+  it('adds blog and FAQ to older persisted data', async () => {
+    const { addBlogAndFaq } = await import('./migrations')
+    const { blog: _blog, faqs: _faqs, ...rest } = structuredClone(defaultPortfolio)
+    const { blog: _b, faq: _f, ...sections } = rest.sections
+    const migrated = addBlogAndFaq({ ...rest, sections } as unknown as typeof defaultPortfolio)
+    expect(migrated.blog.length).toBe(defaultPortfolio.blog.length)
+    expect(migrated.faqs.length).toBe(defaultPortfolio.faqs.length)
+    expect(migrated.sections.blog).toBe(true)
+    expect(migrated.sections.faq).toBe(true)
+  })
+})

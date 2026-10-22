@@ -1,5 +1,6 @@
 import { isArabicText } from '../lib/utils'
-import type { AgentSettings, ChatAction, Lang, PortfolioState, SectionKey } from '../types'
+import { publishedPosts } from '../lib/blog'
+import type { AgentSettings, ChatAction, FaqItem, Lang, PortfolioState, SectionKey } from '../types'
 
 export interface AgentReply {
   text: string
@@ -24,6 +25,7 @@ export type Intent =
   | 'cv'
   | 'salary'
   | 'agent'
+  | 'blog'
 
 export const normalize = (text: string) =>
   text
@@ -53,6 +55,7 @@ const keywords: Record<Intent, string[]> = {
   availability: ['available', 'availability', 'open to work', 'freelance', 'opportunit', 'متاح', 'فرصه', 'فرص', 'متفرغ', 'عمل حر'],
   cv: ['cv', 'resume', 'résumé', 'download', 'سيره', 'السيره الذاتيه', 'تحميل'],
   salary: ['salary', 'rate', 'price', 'cost', 'expected', 'راتب', 'سعر', 'تكلفه', 'اجر'],
+  blog: ['blog', 'article', 'articles', 'post', 'posts', 'write', 'writes', 'writing', 'مدونه', 'مقال', 'مقالات', 'تدوينه', 'يكتب'],
   agent: ['who are you', 'are you ai', 'are you a bot', 'what can you do', 'help', 'من انت', 'ماذا تستطيع', 'مساعده', 'ساعدني'],
 }
 
@@ -68,6 +71,7 @@ const sectionFor: Partial<Record<Intent, SectionKey>> = {
   contact: 'contact',
   availability: 'contact',
   salary: 'contact',
+  blog: 'blog',
 }
 
 const hasKeyword = (text: string, keyword: string) => {
@@ -140,6 +144,29 @@ export function findMentionedProject(question: string, portfolio: PortfolioState
   })
 }
 
+const stopwords = new Set([
+  'the', 'and', 'for', 'you', 'your', 'does', 'did', 'can', 'could', 'what', 'which', 'how', 'his', 'him', 'are', 'with',
+  'about', 'who', 'where', 'when', 'will', 'have', 'has', 'that', 'this', 'from', 'into', 'any', 'kind',
+  'هل', 'ما', 'ماذا', 'كيف', 'من', 'في', 'علي', 'عن', 'الي', 'او', 'هو', 'لديه', 'يمكن', 'التي', 'الذي', 'مع', 'نوع',
+])
+const tokens = (text: string) => normalize(text).split(' ').filter((word) => word.length > 2 && !stopwords.has(word))
+
+/** Finds the FAQ entry whose question best matches the visitor's question. */
+export function findFaq(question: string, portfolio: PortfolioState): FaqItem | undefined {
+  const asked = new Set(tokens(question))
+  if (asked.size < 2) return undefined
+  let best: { faq: FaqItem; score: number } | undefined
+  for (const faq of portfolio.faqs ?? []) {
+    for (const text of [faq.question.en, faq.question.ar]) {
+      const words = [...new Set(tokens(text))]
+      const hits = words.filter((word) => asked.has(word)).length
+      const score = hits / Math.max(words.length, asked.size)
+      if (hits >= 2 && score >= 0.5 && (!best || score > best.score)) best = { faq, score }
+    }
+  }
+  return best?.faq
+}
+
 export function detectSectionAction(question: string, portfolio: PortfolioState): ChatAction | undefined {
   const { intent } = detectIntent(question)
   const section = intent ? sectionFor[intent] : findMentionedProject(question, portfolio) ? 'projects' : undefined
@@ -166,6 +193,9 @@ export function localAgentReply(
     section && portfolio.sections[section] ? { type: 'scroll', target: section } : undefined
 
   const strongIntent = intent && (scores[intent] ?? 0) >= 4
+
+  const faq = findFaq(question, portfolio)
+  if (faq && !project) return { text: l(faq.answer), action: action('faq') }
 
   if (project && !(intent && ['contact', 'salary', 'cv', 'availability'].includes(intent))) {
     const links = [
@@ -325,6 +355,16 @@ export function localAgentReply(
           : `Compensation is best discussed directly with ${name}. Please reach out via the contact form or at ${profile.email}.`,
         action: action('contact'),
       }
+    case 'blog': {
+      const posts = publishedPosts(portfolio.blog).slice(0, 5)
+      if (posts.length === 0) return { text: ar ? 'لا توجد مقالات منشورة بعد.' : 'There are no published articles yet.' }
+      return {
+        text:
+          (ar ? `أحدث مقالات ${name}:\n` : `${name}'s latest articles:\n`) +
+          bullet(posts.map((p) => `**${l(p.title)}** — ${location.origin}/blog/${p.slug}`)),
+        action: action('blog'),
+      }
+    }
     default:
       return {
         text:

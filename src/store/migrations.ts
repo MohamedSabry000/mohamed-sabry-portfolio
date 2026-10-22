@@ -26,11 +26,25 @@ export function addCvLinks(portfolio: PortfolioState): PortfolioState {
   }
 }
 
+/** v3: adds the blog and FAQ collections and their section toggles. */
+export function addBlogAndFaq(portfolio: PortfolioState): PortfolioState {
+  return {
+    ...portfolio,
+    blog: portfolio.blog ?? defaultPortfolio.blog,
+    faqs: portfolio.faqs ?? defaultPortfolio.faqs,
+    sections: { ...portfolio.sections, blog: portfolio.sections?.blog ?? true, faq: portfolio.sections?.faq ?? true },
+  }
+}
+
 type RootPersisted = PersistedState & { portfolio?: PortfolioState }
 
 export const migrations: MigrationManifest = {
   2: (state) => {
     const root = state as RootPersisted
     return (root?.portfolio ? { ...root, portfolio: addCvLinks(root.portfolio) } : root) as PersistedState
+  },
+  3: (state) => {
+    const root = state as RootPersisted
+    return (root?.portfolio ? { ...root, portfolio: addBlogAndFaq(root.portfolio) } : root) as PersistedState
   },
 }

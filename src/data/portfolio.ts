@@ -1,3 +1,4 @@
+import { defaultBlog, defaultFaqs } from './content'
 import type { AgentSettings, PortfolioState } from '../types'
 
 export const defaultPortfolio: PortfolioState = {
@@ -383,6 +384,8 @@ export const defaultPortfolio: PortfolioState = {
     { en: 'Problem solving', ar: 'حل المشكلات' },
     { en: 'Communication', ar: 'التواصل' },
   ],
+  blog: defaultBlog,
+  faqs: defaultFaqs,
   sections: {
     about: true,
     experience: true,
@@ -390,6 +393,8 @@ export const defaultPortfolio: PortfolioState = {
     skills: true,
     education: true,
     certificates: true,
+    blog: true,
+    faq: true,
     contact: true,
   },
 }

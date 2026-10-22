@@ -77,6 +77,24 @@ export interface Certificate {
   link?: string
 }
 
+export interface BlogPost {
+  id: string
+  slug: string
+  title: Localized
+  excerpt: Localized
+  content: Localized
+  tags: string[]
+  date: string
+  cover: string
+  published: boolean
+}
+
+export interface FaqItem {
+  id: string
+  question: Localized
+  answer: Localized
+}
+
 export interface SpokenLanguage {
   id: string
   name: Localized
@@ -90,6 +108,8 @@ export type SectionKey =
   | 'skills'
   | 'education'
   | 'certificates'
+  | 'blog'
+  | 'faq'
   | 'contact'
 
 export type CollectionKey =
@@ -99,6 +119,8 @@ export type CollectionKey =
   | 'education'
   | 'certificates'
   | 'languages'
+  | 'blog'
+  | 'faqs'
 
 export interface PortfolioState {
   profile: Profile
@@ -108,6 +130,8 @@ export interface PortfolioState {
   education: Education[]
   certificates: Certificate[]
   languages: SpokenLanguage[]
+  blog: BlogPost[]
+  faqs: FaqItem[]
   softSkills: Localized[]
   sections: Record<SectionKey, boolean>
 }

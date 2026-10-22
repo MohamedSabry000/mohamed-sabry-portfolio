@@ -1,3 +1,4 @@
+import { publishedPosts } from '../lib/blog'
 import type { AgentSettings, Lang, PortfolioState } from '../types'
 
 const range = (start: string, end: string) => `${start} → ${end}`
@@ -36,6 +37,12 @@ export function buildKnowledgeBase(portfolio: PortfolioState, lang: Lang = 'en')
     '',
     'Certificates:',
     ...portfolio.certificates.map((c) => `- ${l(c.title)} — ${l(c.issuer)} (${c.date}). ${l(c.description)}${c.link ? ` Credential: ${c.link}` : ''}`),
+    '',
+    'Blog articles (on this website):',
+    ...publishedPosts(portfolio.blog).map((p) => `- ${l(p.title)} (${p.date}): ${l(p.excerpt)} URL: /blog/${p.slug}`),
+    '',
+    'FAQ:',
+    ...(portfolio.faqs ?? []).map((f) => `- Q: ${l(f.question)} A: ${l(f.answer)}`),
     '',
     `Spoken languages: ${portfolio.languages.map((x) => `${l(x.name)} (${l(x.level)})`).join(', ')}`,
     `Soft skills: ${portfolio.softSkills.map(l).join(', ')}`,

@@ -22,4 +22,5 @@ if (!window.matchMedia) {
     }) as MediaQueryList
 }
 Element.prototype.scrollIntoView = function () {}
+window.scrollTo = (() => {}) as typeof window.scrollTo
 Element.prototype.scrollTo = function () {} as typeof Element.prototype.scrollTo

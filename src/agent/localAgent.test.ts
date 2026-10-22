@@ -46,3 +46,21 @@ describe('localAgent project links', () => {
     expect(reply.text).toContain('https://movie-yo.vercel.app/')
   })
 })
+
+describe('localAgent FAQ & blog', () => {
+  it('answers from the FAQ', () => {
+    const reply = ask('Does he build Arabic RTL websites?')
+    expect(reply.text).toContain('right-to-left')
+    expect(reply.action).toEqual({ type: 'scroll', target: 'faq' })
+  })
+
+  it('answers FAQ questions in Arabic', () => {
+    expect(ask('أين يقيم محمد؟', 'ar').text).toContain('القاهرة')
+  })
+
+  it('lists blog articles', () => {
+    const reply = ask('Does he write blog articles?')
+    expect(reply.text).toContain('/blog/react-19-forms')
+    expect(reply.action).toEqual({ type: 'scroll', target: 'blog' })
+  })
+})

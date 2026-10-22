@@ -52,7 +52,11 @@ const portfolioSlice = createSlice({
       state.sections[action.payload] = !state.sections[action.payload]
     },
     importPortfolio(_state, action: PayloadAction<PortfolioState>) {
-      return action.payload
+      return {
+        ...defaultPortfolio,
+        ...action.payload,
+        sections: { ...defaultPortfolio.sections, ...action.payload.sections },
+      }
     },
     resetPortfolio() {
       return defaultPortfolio

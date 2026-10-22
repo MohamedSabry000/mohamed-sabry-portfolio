@@ -15,3 +15,19 @@ export async function sha256(text: string): Promise<string> {
 }
 
 export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+
+export const readingMinutes = (text: string) => Math.max(1, Math.round(text.trim().split(/\s+/).length / 200))
+
+export const formatDay = (date: string, lang: 'en' | 'ar') => {
+  const parsed = new Date(`${date}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return date
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }).format(parsed)
+}

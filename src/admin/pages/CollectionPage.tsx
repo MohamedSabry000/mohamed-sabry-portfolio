@@ -5,19 +5,20 @@ import { Field, Input, Textarea, Toggle } from '../../components/ui/Field'
 import { useLanguage } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import type { TranslationKey } from '../../i18n/translations'
-import { uid } from '../../lib/utils'
+import { slugify, uid } from '../../lib/utils'
 import { useAppDispatch, useAppSelector } from '../../store'
 import { moveItem, removeItem, upsertItem } from '../../store/slices/portfolioSlice'
 import type { CollectionItem, CollectionKey, Localized, ProjectLink } from '../../types'
 import LocalizedField, { readLocalized } from '../components/LocalizedField'
 import PageHeader from '../components/PageHeader'
 
-type FieldType = 'localized' | 'localizedText' | 'text' | 'month' | 'tags' | 'links' | 'category' | 'checkbox'
+type FieldType = 'localized' | 'localizedText' | 'text' | 'month' | 'tags' | 'links' | 'category' | 'checkbox' | 'slug' | 'date' | 'markdown'
 interface FieldDef {
   key: string
   label: string
   type: FieldType
   hint?: string
+  defaultValue?: unknown
 }
 
 interface Schema {
@@ -29,7 +30,33 @@ interface Schema {
 
 const dateHint = 'Format: YYYY-MM (use "present" for current)'
 
+const today = () => new Date().toISOString().slice(0, 10)
+
 const schemas: Record<CollectionKey, Schema> = {
+  blog: {
+    titleKey: 'admin.blog',
+    primary: 'title',
+    secondary: 'excerpt',
+    fields: [
+      { key: 'title', label: 'Title', type: 'localized' },
+      { key: 'slug', label: 'URL slug', type: 'slug', hint: 'Leave empty to generate it from the English title' },
+      { key: 'date', label: 'Publish date', type: 'date' },
+      { key: 'excerpt', label: 'Excerpt', type: 'localizedText' },
+      { key: 'content', label: 'Content', type: 'markdown', hint: 'Markdown: ## Heading, **bold**, `code`, - list, 1. list, > quote, [link](https://…), ``` code block' },
+      { key: 'tags', label: 'Tags', type: 'tags', hint: 'Comma separated' },
+      { key: 'cover', label: 'Cover image URL (optional)', type: 'text' },
+      { key: 'published', label: 'Published', type: 'checkbox', defaultValue: true },
+    ],
+  },
+  faqs: {
+    titleKey: 'admin.faq',
+    primary: 'question',
+    secondary: 'answer',
+    fields: [
+      { key: 'question', label: 'Question', type: 'localized' },
+      { key: 'answer', label: 'Answer', type: 'localizedText', hint: 'Supports **bold**, links and - lists' },
+    ],
+  },
   experiences: {
     titleKey: 'admin.experience',
     primary: 'role',
@@ -118,7 +145,9 @@ type AnyItem = Record<string, unknown> & { id: string }
 const emptyItem = (schema: Schema): AnyItem => {
   const item: AnyItem = { id: '' }
   for (const field of schema.fields) {
-    if (field.type === 'localized' || field.type === 'localizedText') item[field.key] = { en: '', ar: '' }
+    if (field.defaultValue !== undefined) item[field.key] = field.defaultValue
+    else if (field.type === 'localized' || field.type === 'localizedText' || field.type === 'markdown') item[field.key] = { en: '', ar: '' }
+    else if (field.type === 'date') item[field.key] = today()
     else if (field.type === 'tags' || field.type === 'links') item[field.key] = []
     else if (field.type === 'checkbox') item[field.key] = false
     else if (field.type === 'category') item[field.key] = 'professional'
@@ -220,7 +249,9 @@ function EditorModal({ collection, schema, item, onClose }: { collection: Collec
     const next: AnyItem = { id: item.id || uid(collection.slice(0, 3)) }
     for (const field of schema.fields) {
       const raw = String(formData.get(field.key) ?? '').trim()
-      if (field.type === 'localized' || field.type === 'localizedText') next[field.key] = readLocalized(formData, field.key)
+      if (field.type === 'localized' || field.type === 'localizedText' || field.type === 'markdown') next[field.key] = readLocalized(formData, field.key)
+      else if (field.type === 'slug') next[field.key] = slugify(raw) || slugify((next.title as Localized | undefined)?.en ?? '') || next.id
+      else if (field.type === 'date') next[field.key] = raw || today()
       else if (field.type === 'tags') next[field.key] = raw.split(',').map((s) => s.trim()).filter(Boolean)
       else if (field.type === 'links') next[field.key] = parseLinks(raw)
       else if (field.type === 'checkbox') next[field.key] = formData.get(field.key) === 'on'
@@ -252,6 +283,19 @@ function EditorModal({ collection, schema, item, onClose }: { collection: Collec
                 return (
                   <Field key={field.key} label={field.label} hint={field.hint} htmlFor={field.key}>
                     <Input id={field.key} name={field.key} defaultValue={(value as string[]).join(', ')} dir="ltr" />
+                  </Field>
+                )
+              case 'markdown':
+                return (
+                  <div key={field.key}>
+                    <LocalizedField name={field.key} label={field.label} value={value as Localized} multiline rows={12} />
+                    {field.hint && <p className="mt-1 text-xs text-slate-500">{field.hint}</p>}
+                  </div>
+                )
+              case 'date':
+                return (
+                  <Field key={field.key} label={field.label} htmlFor={field.key}>
+                    <Input id={field.key} name={field.key} type="date" defaultValue={String(value ?? '')} dir="ltr" />
                   </Field>
                 )
               case 'links':

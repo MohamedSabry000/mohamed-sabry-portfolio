@@ -35,12 +35,19 @@ From the admin panel you can:
 
 - Edit the profile (English and Arabic), stats, and availability
 - Add, edit, delete, and reorder experience, projects, skills, education, certificates, and languages
+- Write blog posts (English and Arabic, Markdown) and manage FAQ entries
 - Show or hide sections of the public site
 - Configure the AI assistant (name, greeting, mode, instructions, suggested prompts)
 - Read contact messages and visitor chat logs
 - Export, import, or reset all portfolio data as JSON
 
 > Admin authentication and data persistence happen in the browser (Redux Persist → localStorage). Content edited in the admin panel is stored per browser. Use **Export JSON** to back it up or move it between browsers.
+
+## Blog & FAQ
+
+- `/blog` lists published posts with search and tag filters; `/blog/:slug` shows a post. The latest 3 posts also appear on the home page.
+- Posts are written in a safe Markdown subset (headings, lists, links, code blocks, quotes). Raw HTML is not rendered.
+- The FAQ section is an accessible accordion. The AI assistant answers matching questions from the FAQ and can list blog articles.
 
 ## AI assistant
 

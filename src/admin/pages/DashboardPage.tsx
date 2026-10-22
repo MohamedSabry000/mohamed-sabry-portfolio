@@ -1,4 +1,4 @@
-import { Award, Bot, Briefcase, FolderGit2, Mail, MessageSquare, Wrench } from 'lucide-react'
+import { Award, Bot, Briefcase, CircleHelp, FolderGit2, Mail, MessageSquare, Newspaper, Wrench } from 'lucide-react'
 import { Link } from 'react-router'
 import { useLanguage } from '../../context/LanguageContext'
 import { useAppSelector } from '../../store'
@@ -15,6 +15,8 @@ export default function DashboardPage() {
     { label: t('admin.experience'), value: portfolio.experiences.length, icon: Briefcase, to: '/admin/experience' },
     { label: t('admin.skills'), value: skillsCount, icon: Wrench, to: '/admin/skills' },
     { label: t('admin.certificates'), value: portfolio.certificates.length, icon: Award, to: '/admin/certificates' },
+    { label: t('admin.blog'), value: portfolio.blog.length, icon: Newspaper, to: '/admin/blog' },
+    { label: t('admin.faq'), value: portfolio.faqs.length, icon: CircleHelp, to: '/admin/faq' },
     { label: t('admin.unread'), value: unread, icon: Mail, to: '/admin/messages' },
     { label: t('admin.chatMessages'), value: chat.totalVisitorMessages, icon: MessageSquare, to: '/admin/messages' },
   ]
@@ -22,7 +24,7 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader title={`${t('admin.welcome')}, ${tr(portfolio.profile.name).split(' ')[0]}`} subtitle={t('admin.welcomeSub')} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, to }) => (
           <Link key={label} to={to} className="card flex items-center gap-4 p-5 transition hover:border-brand-400">
             <span className="bg-gradient-brand grid size-12 place-items-center rounded-xl text-white">

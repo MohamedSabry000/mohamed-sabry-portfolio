@@ -4,6 +4,9 @@ import Spinner from './components/ui/Spinner'
 import PortfolioPage from './pages/PortfolioPage'
 import NotFoundPage from './pages/NotFoundPage'
 
+const BlogListPage = lazy(() => import('./pages/BlogListPage'))
+const BlogPostPage = lazy(() => import('./pages/BlogPostPage'))
+
 const AdminLogin = lazy(() => import('./admin/pages/LoginPage'))
 const AdminLayout = lazy(() => import('./admin/AdminLayout'))
 const Dashboard = lazy(() => import('./admin/pages/DashboardPage'))
@@ -25,6 +28,8 @@ export default function App() {
     >
       <Routes>
         <Route path="/" element={<PortfolioPage />} />
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
@@ -35,6 +40,8 @@ export default function App() {
           <Route path="education" element={<CollectionPage collection="education" />} />
           <Route path="certificates" element={<CollectionPage collection="certificates" />} />
           <Route path="languages" element={<CollectionPage collection="languages" />} />
+          <Route path="blog" element={<CollectionPage collection="blog" />} />
+          <Route path="faq" element={<CollectionPage collection="faqs" />} />
           <Route path="sections" element={<SectionsPage />} />
           <Route path="agent" element={<AgentPage />} />
           <Route path="messages" element={<MessagesPage />} />

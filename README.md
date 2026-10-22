@@ -27,6 +27,16 @@ npm run dev        # web on http://localhost:5173 + API on http://localhost:8787
 | `npm test` | Vitest + React Testing Library |
 | `npm run lint` | oxlint |
 
+## Deploy to GitHub Pages
+
+Live site: https://mohamedsabry000.github.io/mohamed-sabry-portfolio/
+
+```bash
+npm run build:pages   # static build with base /mohamed-sabry-portfolio/ and a 404.html SPA fallback
+```
+
+Then publish `dist/` to the `gh-pages` branch. GitHub Pages has no API server, so on Pages the assistant uses the built-in engine and reads Sanity content straight from Sanity's CDN. For that to work, add `https://mohamedsabry000.github.io` as a CORS origin (credentials not needed) in sanity.io/manage → API. OpenAI answers and chat logging need the Express server (`npm start`) on a Node host.
+
 ## Admin panel
 
 Go to `/admin`. Default credentials: **admin / admin123**. Change them under **Settings** right away.

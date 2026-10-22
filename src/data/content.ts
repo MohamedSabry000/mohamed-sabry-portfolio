@@ -1,4 +1,5 @@
 import type { BlogPost, FaqItem } from '../types'
+import { interviewPosts } from './interviewPosts'
 
 const rtlEn = [
   'Most products I build at Naseej ship in Arabic and English. Supporting both is a layout problem, not a translation problem. Here is what works for me.',
@@ -148,6 +149,7 @@ const capAr = [
 ].join('\n')
 
 export const defaultBlog: BlogPost[] = [
+  ...interviewPosts,
   {
     id: 'post_rtl',
     slug: 'building-bilingual-rtl-interfaces-react',

@@ -36,6 +36,15 @@ export function addBlogAndFaq(portfolio: PortfolioState): PortfolioState {
   }
 }
 
+/** v4: adds new seeded blog posts (e.g. the interview series) without touching existing ones. */
+export function addNewSeedPosts(portfolio: PortfolioState): PortfolioState {
+  const blog = portfolio.blog ?? []
+  const ids = new Set(blog.map((post) => post.id))
+  const slugs = new Set(blog.map((post) => post.slug))
+  const missing = defaultPortfolio.blog.filter((post) => !ids.has(post.id) && !slugs.has(post.slug))
+  return missing.length ? { ...portfolio, blog: [...missing, ...blog] } : portfolio
+}
+
 type RootPersisted = PersistedState & { portfolio?: PortfolioState }
 
 export const migrations: MigrationManifest = {
@@ -46,5 +55,9 @@ export const migrations: MigrationManifest = {
   3: (state) => {
     const root = state as RootPersisted
     return (root?.portfolio ? { ...root, portfolio: addBlogAndFaq(root.portfolio) } : root) as PersistedState
+  },
+  4: (state) => {
+    const root = state as RootPersisted
+    return (root?.portfolio ? { ...root, portfolio: addNewSeedPosts(root.portfolio) } : root) as PersistedState
   },
 }

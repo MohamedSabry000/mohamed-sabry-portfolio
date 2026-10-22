@@ -35,3 +35,14 @@ describe('v3 migration', () => {
     expect(migrated.sections.faq).toBe(true)
   })
 })
+
+describe('v4 migration', () => {
+  it('adds the interview series to older persisted blogs without overwriting edits', async () => {
+    const { addNewSeedPosts } = await import('./migrations')
+    const edited = { ...defaultPortfolio.blog.find((p) => p.id === 'post_rtl')!, title: { en: 'Edited', ar: 'معدل' } }
+    const migrated = addNewSeedPosts({ ...defaultPortfolio, blog: [edited] })
+    expect(migrated.blog.find((p) => p.id === 'post_rtl')?.title.en).toBe('Edited')
+    expect(migrated.blog.some((p) => p.slug === 'react-interview-questions-advanced-senior')).toBe(true)
+    expect(migrated.blog).toHaveLength(defaultPortfolio.blog.length)
+  })
+})

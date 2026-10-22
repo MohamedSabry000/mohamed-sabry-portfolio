@@ -25,7 +25,7 @@ const storage = createWebStorage('local')
 
 const persistConfig = {
   key: 'mohamed-sabry-portfolio',
-  version: 4,
+  version: 5,
   storage,
   whitelist: ['portfolio', 'messages', 'chat', 'agent', 'settings'],
   migrate: createMigrate(migrations, { debug: false }),

@@ -60,7 +60,7 @@ describe('localAgent FAQ & blog', () => {
 
   it('lists blog articles', () => {
     const reply = ask('Does he write blog articles?')
-    expect(reply.text).toContain('/blog/react-interview-questions-advanced-senior')
+    expect(reply.text).toContain('/blog/javascript-interview-questions-internals-deep-dive')
     expect(reply.action).toEqual({ type: 'scroll', target: 'blog' })
   })
 })

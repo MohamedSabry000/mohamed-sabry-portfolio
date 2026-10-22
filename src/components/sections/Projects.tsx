@@ -8,6 +8,8 @@ import SectionTitle from '../ui/SectionTitle'
 
 type Filter = 'all' | ProjectCategory
 
+const isVideo = (url: string) => /youtu\.?be|vimeo\.com/.test(url)
+
 export default function Projects() {
   const { t, tr } = useLanguage()
   const projects = useAppSelector((state) => state.portfolio.projects)
@@ -71,15 +73,23 @@ export default function Projects() {
                   </span>
                 ))}
               </div>
-              {project.link && (
-                <a
-                  href={project.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
-                >
-                  {t('projects.visit')} <ExternalLink className="size-3.5" />
-                </a>
+              {(project.link || (project.links?.length ?? 0) > 0) && (
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+                  {[
+                    ...(project.link ? [{ label: isVideo(project.link) ? t('projects.demo') : t('projects.visit'), url: project.link }] : []),
+                    ...(project.links ?? []),
+                  ].map((link) => (
+                    <a
+                      key={link.url}
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                    >
+                      {link.label} <ExternalLink className="size-3.5" />
+                    </a>
+                  ))}
+                </div>
               )}
             </article>
           ))}

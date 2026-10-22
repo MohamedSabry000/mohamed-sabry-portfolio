@@ -130,6 +130,7 @@ export function findMentionedProject(question: string, portfolio: PortfolioState
   const generic = new Set(['system', 'platform', 'app', 'apps', 'store', 'management', 'project', 'university'])
   allTech(portfolio).forEach((tech) => normalize(tech).split(' ').forEach((word) => generic.add(word)))
   return portfolio.projects.find((project) => {
+    if ((project.links ?? []).some((link) => text.includes(normalize(link.label)))) return true
     const names = [project.title.en, project.title.ar].map((n) => normalize(n.replace(/\(.*?\)/g, '')))
     return names.some(
       (name) =>
@@ -167,10 +168,15 @@ export function localAgentReply(
   const strongIntent = intent && (scores[intent] ?? 0) >= 4
 
   if (project && !(intent && ['contact', 'salary', 'cv', 'availability'].includes(intent))) {
+    const links = [
+      ...(project.link ? [{ label: ar ? 'الرابط' : 'Link', url: project.link }] : []),
+      ...(project.links ?? []),
+    ]
+    const linksText = links.length ? `\n\n${links.map((link) => `- ${link.label}: ${link.url}`).join('\n')}` : ''
     return {
       text: ar
-        ? `**${l(project.title)}** — ${l(project.role)}\n${l(project.description)}\n\nالتقنيات: ${project.tech.join('، ')}`
-        : `**${l(project.title)}** — ${l(project.role)}\n${l(project.description)}\n\nTech: ${project.tech.join(', ')}`,
+        ? `**${l(project.title)}** — ${l(project.role)}\n${l(project.description)}\n\nالتقنيات: ${project.tech.join('، ')}${linksText}`
+        : `**${l(project.title)}** — ${l(project.role)}\n${l(project.description)}\n\nTech: ${project.tech.join(', ')}${linksText}`,
       action: action('projects'),
     }
   }

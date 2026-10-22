@@ -25,7 +25,7 @@ export function buildKnowledgeBase(portfolio: PortfolioState, lang: Lang = 'en')
     '',
     'Projects:',
     ...portfolio.projects.map(
-      (p) => `- ${l(p.title)} — ${l(p.role)}: ${l(p.description)} Tech: ${p.tech.join(', ')}${p.link ? ` Link: ${p.link}` : ''}`,
+      (p) => `- ${l(p.title)} — ${l(p.role)}: ${l(p.description)} Tech: ${p.tech.join(', ')}${p.link ? ` Link: ${p.link}` : ''}${p.links?.length ? ` Demos: ${p.links.map((d) => `${d.label} (${d.url})`).join(', ')}` : ''}`,
     ),
     '',
     'Skills:',
@@ -35,7 +35,7 @@ export function buildKnowledgeBase(portfolio: PortfolioState, lang: Lang = 'en')
     ...portfolio.education.map((e) => `- ${l(e.title)}, ${l(e.institution)} (${range(e.start, e.end)}). ${l(e.details)}`),
     '',
     'Certificates:',
-    ...portfolio.certificates.map((c) => `- ${l(c.title)} — ${l(c.issuer)} (${c.date}). ${l(c.description)}`),
+    ...portfolio.certificates.map((c) => `- ${l(c.title)} — ${l(c.issuer)} (${c.date}). ${l(c.description)}${c.link ? ` Credential: ${c.link}` : ''}`),
     '',
     `Spoken languages: ${portfolio.languages.map((x) => `${l(x.name)} (${l(x.level)})`).join(', ')}`,
     `Soft skills: ${portfolio.softSkills.map(l).join(', ')}`,

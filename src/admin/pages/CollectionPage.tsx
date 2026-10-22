@@ -1,18 +1,18 @@
 import { ArrowDown, ArrowUp, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { useActionState, useDeferredValue, useState } from 'react'
 import { Button, SubmitButton } from '../../components/ui/Button'
-import { Field, Input, Toggle } from '../../components/ui/Field'
+import { Field, Input, Textarea, Toggle } from '../../components/ui/Field'
 import { useLanguage } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import type { TranslationKey } from '../../i18n/translations'
 import { uid } from '../../lib/utils'
 import { useAppDispatch, useAppSelector } from '../../store'
 import { moveItem, removeItem, upsertItem } from '../../store/slices/portfolioSlice'
-import type { CollectionItem, CollectionKey, Localized } from '../../types'
+import type { CollectionItem, CollectionKey, Localized, ProjectLink } from '../../types'
 import LocalizedField, { readLocalized } from '../components/LocalizedField'
 import PageHeader from '../components/PageHeader'
 
-type FieldType = 'localized' | 'localizedText' | 'text' | 'month' | 'tags' | 'category' | 'checkbox'
+type FieldType = 'localized' | 'localizedText' | 'text' | 'month' | 'tags' | 'links' | 'category' | 'checkbox'
 interface FieldDef {
   key: string
   label: string
@@ -41,6 +41,7 @@ const schemas: Record<CollectionKey, Schema> = {
       { key: 'end', label: 'End', type: 'month', hint: dateHint },
       { key: 'description', label: 'Description', type: 'localizedText' },
       { key: 'tech', label: 'Tech stack', type: 'tags', hint: 'Comma separated' },
+      { key: 'link', label: 'Link', type: 'text' },
     ],
   },
   projects: {
@@ -53,6 +54,7 @@ const schemas: Record<CollectionKey, Schema> = {
       { key: 'description', label: 'Description', type: 'localizedText' },
       { key: 'tech', label: 'Tech stack', type: 'tags', hint: 'Comma separated' },
       { key: 'link', label: 'Link', type: 'text' },
+      { key: 'links', label: 'Extra links', type: 'links', hint: 'One per line: Label | https://…' },
       { key: 'category', label: 'Category', type: 'category' },
       { key: 'featured', label: 'Featured', type: 'checkbox' },
     ],
@@ -86,6 +88,7 @@ const schemas: Record<CollectionKey, Schema> = {
       { key: 'issuer', label: 'Issuer', type: 'localized' },
       { key: 'date', label: 'Date', type: 'month', hint: 'Format: YYYY-MM' },
       { key: 'description', label: 'Description', type: 'localizedText' },
+      { key: 'link', label: 'Credential URL', type: 'text' },
     ],
   },
   languages: {
@@ -99,13 +102,24 @@ const schemas: Record<CollectionKey, Schema> = {
   },
 }
 
+export function parseLinks(raw: string): ProjectLink[] {
+  return raw
+    .split('\n')
+    .map((line) => {
+      const [label, ...rest] = line.split('|')
+      const url = rest.join('|').trim() || label.trim()
+      return { label: rest.length ? label.trim() : url, url }
+    })
+    .filter((link) => /^https?:\/\//.test(link.url))
+}
+
 type AnyItem = Record<string, unknown> & { id: string }
 
 const emptyItem = (schema: Schema): AnyItem => {
   const item: AnyItem = { id: '' }
   for (const field of schema.fields) {
     if (field.type === 'localized' || field.type === 'localizedText') item[field.key] = { en: '', ar: '' }
-    else if (field.type === 'tags') item[field.key] = []
+    else if (field.type === 'tags' || field.type === 'links') item[field.key] = []
     else if (field.type === 'checkbox') item[field.key] = false
     else if (field.type === 'category') item[field.key] = 'professional'
     else item[field.key] = ''
@@ -208,6 +222,7 @@ function EditorModal({ collection, schema, item, onClose }: { collection: Collec
       const raw = String(formData.get(field.key) ?? '').trim()
       if (field.type === 'localized' || field.type === 'localizedText') next[field.key] = readLocalized(formData, field.key)
       else if (field.type === 'tags') next[field.key] = raw.split(',').map((s) => s.trim()).filter(Boolean)
+      else if (field.type === 'links') next[field.key] = parseLinks(raw)
       else if (field.type === 'checkbox') next[field.key] = formData.get(field.key) === 'on'
       else next[field.key] = raw
     }
@@ -237,6 +252,12 @@ function EditorModal({ collection, schema, item, onClose }: { collection: Collec
                 return (
                   <Field key={field.key} label={field.label} hint={field.hint} htmlFor={field.key}>
                     <Input id={field.key} name={field.key} defaultValue={(value as string[]).join(', ')} dir="ltr" />
+                  </Field>
+                )
+              case 'links':
+                return (
+                  <Field key={field.key} label={field.label} hint={field.hint} htmlFor={field.key}>
+                    <Textarea id={field.key} name={field.key} rows={3} dir="ltr" defaultValue={((value as ProjectLink[] | undefined) ?? []).map((l) => `${l.label} | ${l.url}`).join('\n')} />
                   </Field>
                 )
               case 'checkbox':

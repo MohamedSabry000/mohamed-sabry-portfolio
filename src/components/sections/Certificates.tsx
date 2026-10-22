@@ -1,4 +1,4 @@
-import { Award } from 'lucide-react'
+import { Award, ExternalLink } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useAppSelector } from '../../store'
 import SectionTitle from '../ui/SectionTitle'
@@ -21,6 +21,16 @@ export default function Certificates() {
               <h3 className="mt-3 font-bold text-slate-900 dark:text-white">{tr(item.title)}</h3>
               <p className="text-sm font-medium text-brand-600 dark:text-brand-400">{tr(item.issuer)}</p>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{tr(item.description)}</p>
+              {item.link && (
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                >
+                  {t('certificates.verify')} <ExternalLink className="size-3.5" />
+                </a>
+              )}
             </article>
           ))}
         </div>

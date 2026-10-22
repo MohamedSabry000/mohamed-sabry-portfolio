@@ -12,6 +12,7 @@ import {
   persistStore,
 } from 'redux-persist'
 import createWebStorage from 'redux-persist/es/storage/createWebStorage'
+import { migrations } from './migrations'
 import agent from './slices/agentSlice'
 import chat from './slices/chatSlice'
 import messages from './slices/messagesSlice'
@@ -24,10 +25,10 @@ const storage = createWebStorage('local')
 
 const persistConfig = {
   key: 'mohamed-sabry-portfolio',
-  version: 1,
+  version: 2,
   storage,
   whitelist: ['portfolio', 'messages', 'chat', 'agent', 'settings'],
-  migrate: createMigrate({}, { debug: false }),
+  migrate: createMigrate(migrations, { debug: false }),
 }
 
 export const makeStore = (preloadedState?: Partial<ReturnType<typeof rootReducer>>) =>

@@ -31,9 +31,15 @@ export interface Experience {
   end: string
   description: Localized
   tech: string[]
+  link?: string
 }
 
 export type ProjectCategory = 'professional' | 'personal'
+
+export interface ProjectLink {
+  label: string
+  url: string
+}
 
 export interface Project {
   id: string
@@ -42,6 +48,7 @@ export interface Project {
   description: Localized
   tech: string[]
   link: string
+  links?: ProjectLink[]
   category: ProjectCategory
   featured: boolean
 }
@@ -67,6 +74,7 @@ export interface Certificate {
   issuer: Localized
   date: string
   description: Localized
+  link?: string
 }
 
 export interface SpokenLanguage {

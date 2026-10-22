@@ -39,3 +39,10 @@ describe('localAgent', () => {
     expect(ask('qwerty zxcv').text).toContain(defaultAgentSettings.suggestions[0].en)
   })
 })
+
+describe('localAgent project links', () => {
+  it('includes project demo links in answers', () => {
+    const reply = localAgentReply('Show me Movie Yo', defaultPortfolio, defaultAgentSettings, 'en')
+    expect(reply.text).toContain('https://movie-yo.vercel.app/')
+  })
+})

@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "studio": "npm --prefix studio run dev",
     "studio:build": "npm --prefix studio run build",
-    "studio:seed": "cd studio && npx sanity exec scripts/seed.ts --with-user-token"
+    "studio:seed": "cd studio && npx sanity exec scripts/seed.ts --with-user-token",
+    "build:pages": "VITE_BASE=/mohamed-sabry-portfolio/ VITE_STATIC=true VITE_SANITY_PROJECT_ID=rdln7m0z VITE_SANITY_DATASET=production vite build && cp dist/index.html dist/404.html && touch dist/.nojekyll"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.13.0",

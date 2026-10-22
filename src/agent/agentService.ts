@@ -1,4 +1,5 @@
 import type { AgentSettings, ChatAction, ChatMessage, FaqItem, Lang, PortfolioState } from '../types'
+import { isStaticSite } from '../lib/utils'
 import { buildSystemPrompt } from './knowledge'
 import { detectSectionAction, localAgentReply } from './localAgent'
 
@@ -18,6 +19,8 @@ const noSanity = { configured: false, logging: false }
 let healthCache: { llm: boolean; sanity: AgentHealth['sanity']; checkedAt: number } | null = null
 
 export async function checkAgentHealth(force = false): Promise<AgentHealth> {
+  // Static hosting (GitHub Pages) has no API server.
+  if (isStaticSite) return { reachable: false, llm: false, sanity: noSanity }
   if (!force && healthCache && Date.now() - healthCache.checkedAt < 60_000) {
     return { reachable: true, llm: healthCache.llm, sanity: healthCache.sanity }
   }

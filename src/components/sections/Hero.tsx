@@ -1,3 +1,4 @@
+import { assetUrl } from '../../lib/utils'
 import { Bot, Download, Send } from 'lucide-react'
 import { useChatUI } from '../../context/ChatContext'
 import { useLanguage } from '../../context/LanguageContext'
@@ -56,7 +57,7 @@ export default function Hero() {
               {t('hero.contact')}
             </a>
             {profile.cvUrl && (
-              <a href={profile.cvUrl} download className={buttonClass('secondary')}>
+              <a href={assetUrl(profile.cvUrl)} download className={buttonClass('secondary')}>
                 <Download className="size-4" />
                 {t('hero.cv')}
               </a>

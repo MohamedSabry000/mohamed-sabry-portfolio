@@ -1,4 +1,6 @@
+import { isStaticSite } from '../lib/utils'
 import type { AgentSettings, FaqItem, Localized } from '../types'
+import { ASSISTANT_QUERY, normalizeContent } from './sanityShared'
 
 export interface SanityKnowledge {
   id: string
@@ -19,7 +21,24 @@ export const emptyAssistantContent: AssistantContent = { configured: false, logg
 let contentPromise: Promise<AssistantContent> | null = null
 
 /** Assistant settings + knowledge managed in Sanity, served by the API server. Cached for the page lifetime. */
+const SANITY_PROJECT_ID = import.meta.env.VITE_SANITY_PROJECT_ID as string | undefined
+const SANITY_DATASET = (import.meta.env.VITE_SANITY_DATASET as string | undefined) || 'production'
+
+/** Static builds read the public dataset straight from Sanity's CDN (needs the site origin in Sanity CORS settings). */
+async function fetchFromSanityCdn(): Promise<AssistantContent> {
+  if (!SANITY_PROJECT_ID) return emptyAssistantContent
+  const url = `https://${SANITY_PROJECT_ID}.apicdn.sanity.io/v2025-02-19/data/query/${SANITY_DATASET}?query=${encodeURIComponent(ASSISTANT_QUERY)}`
+  const res = await fetch(url)
+  if (!res.ok) return emptyAssistantContent
+  const { result } = (await res.json()) as { result?: { settings?: unknown; knowledge?: unknown } }
+  return { configured: true, logging: false, ...normalizeContent(result ?? null) } as AssistantContent
+}
+
 export function getAssistantContent(): Promise<AssistantContent> {
+  if (isStaticSite) {
+    contentPromise ??= fetchFromSanityCdn().catch(() => emptyAssistantContent)
+    return contentPromise
+  }
   contentPromise ??= fetch('/api/assistant', { headers: { accept: 'application/json' } })
     .then(async (res) => {
       if (!res.ok || !res.headers.get('content-type')?.includes('json')) return emptyAssistantContent

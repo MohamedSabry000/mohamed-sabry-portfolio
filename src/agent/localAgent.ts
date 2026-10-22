@@ -1,4 +1,4 @@
-import { isArabicText } from '../lib/utils'
+import { isArabicText, siteUrl } from '../lib/utils'
 import { publishedPosts } from '../lib/blog'
 import type { AgentSettings, ChatAction, FaqItem, Lang, PortfolioState, SectionKey } from '../types'
 
@@ -358,8 +358,8 @@ export function localAgentReply(
     case 'cv':
       return {
         text: ar
-          ? `يمكنك تحميل السيرة الذاتية لـ ${name} من زر "تحميل السيرة الذاتية" في أعلى الصفحة${profile.cvUrl ? `: ${location.origin}${profile.cvUrl}` : ''}.`
-          : `You can download ${name}'s CV from the "Download CV" button at the top of the page${profile.cvUrl ? `: ${location.origin}${profile.cvUrl}` : ''}.`,
+          ? `يمكنك تحميل السيرة الذاتية لـ ${name} من زر "تحميل السيرة الذاتية" في أعلى الصفحة${profile.cvUrl ? `: ${siteUrl(profile.cvUrl)}` : ''}.`
+          : `You can download ${name}'s CV from the "Download CV" button at the top of the page${profile.cvUrl ? `: ${siteUrl(profile.cvUrl)}` : ''}.`,
       }
     case 'salary':
       return {
@@ -374,7 +374,7 @@ export function localAgentReply(
       return {
         text:
           (ar ? `أحدث مقالات ${name}:\n` : `${name}'s latest articles:\n`) +
-          bullet(posts.map((p) => `**${l(p.title)}** — ${location.origin}/blog/${p.slug}`)),
+          bullet(posts.map((p) => `**${l(p.title)}** — ${siteUrl(`/blog/${p.slug}`)}`)),
         action: action('blog'),
       }
     }

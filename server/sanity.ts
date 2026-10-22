@@ -1,25 +1,10 @@
 import { createClient, type SanityClient } from '@sanity/client'
 
-export interface Localized {
-  en: string
-  ar: string
-}
+import { ASSISTANT_QUERY, normalizeContent, type SanityKnowledgeItem, type SanitySettings } from '../src/agent/sanityShared.ts'
 
-export interface SanityKnowledge {
-  id: string
-  question: Localized
-  answer: Localized
-  keywords: string[]
-}
-
-export interface SanityAssistantSettings {
-  enabled?: boolean
-  mode?: 'auto' | 'local' | 'remote'
-  name?: Localized
-  greeting?: Localized
-  instructions?: string
-  suggestions?: Localized[]
-}
+export { normalizeContent }
+export type SanityKnowledge = SanityKnowledgeItem
+export type SanityAssistantSettings = SanitySettings
 
 export interface AssistantContent {
   configured: boolean
@@ -27,13 +12,6 @@ export interface AssistantContent {
   settings: SanityAssistantSettings | null
   knowledge: SanityKnowledge[]
 }
-
-const ASSISTANT_QUERY = `{
-  "settings": *[_id == "aiAssistant"][0]{ enabled, mode, name, greeting, instructions, suggestions[]{ en, ar } },
-  "knowledge": *[_type in ["aiKnowledge", "faq"] && active != false] | order(coalesce(priority, 0) desc, _createdAt asc){
-    "id": _id, question, answer, "keywords": coalesce(keywords, [])
-  }
-}`
 
 const CACHE_MS = Number(process.env.SANITY_CACHE_SECONDS ?? 60) * 1000
 
@@ -50,38 +28,6 @@ const writeClient: SanityClient | null =
   projectId && writeToken ? createClient({ projectId, dataset, apiVersion, useCdn: false, token: writeToken }) : null
 
 export const sanityStatus = () => ({ configured: Boolean(readClient), logging: Boolean(writeClient), dataset })
-
-// Accepts both localized objects ({ en, ar }) and plain strings (e.g. the existing `faq` documents).
-const cleanLocalized = (value: unknown): Localized => {
-  if (typeof value === 'string') return { en: value.trim(), ar: '' }
-  const v = (value ?? {}) as Partial<Localized>
-  return { en: String(v.en ?? '').trim(), ar: String(v.ar ?? '').trim() }
-}
-
-export function normalizeContent(raw: { settings?: unknown; knowledge?: unknown } | null): Omit<AssistantContent, 'configured' | 'logging'> {
-  const s = (raw?.settings ?? null) as Record<string, unknown> | null
-  const settings: SanityAssistantSettings | null = s
-    ? {
-        ...(typeof s.enabled === 'boolean' ? { enabled: s.enabled } : {}),
-        ...(s.mode === 'auto' || s.mode === 'local' || s.mode === 'remote' ? { mode: s.mode } : {}),
-        ...(s.name ? { name: cleanLocalized(s.name) } : {}),
-        ...(s.greeting ? { greeting: cleanLocalized(s.greeting) } : {}),
-        ...(typeof s.instructions === 'string' ? { instructions: s.instructions } : {}),
-        ...(Array.isArray(s.suggestions)
-          ? { suggestions: s.suggestions.map(cleanLocalized).filter((item) => item.en || item.ar) }
-          : {}),
-      }
-    : null
-  const knowledge = (Array.isArray(raw?.knowledge) ? raw.knowledge : [])
-    .map((item: Record<string, unknown>) => ({
-      id: String(item.id ?? ''),
-      question: cleanLocalized(item.question),
-      answer: cleanLocalized(item.answer),
-      keywords: Array.isArray(item.keywords) ? item.keywords.map(String).filter(Boolean) : [],
-    }))
-    .filter((item) => item.id && (item.answer.en || item.answer.ar))
-  return { settings, knowledge }
-}
 
 let cache: { at: number; value: AssistantContent } | null = null
 

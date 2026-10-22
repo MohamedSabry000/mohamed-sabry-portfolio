@@ -24,7 +24,7 @@ createRoot(document.getElementById('root')!).render(
           <LanguageProvider>
             <ToastProvider>
               <AuthProvider>
-                <BrowserRouter>
+                <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
                   <App />
                 </BrowserRouter>
               </AuthProvider>

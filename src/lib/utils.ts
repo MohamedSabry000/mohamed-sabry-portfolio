@@ -16,6 +16,14 @@ export async function sha256(text: string): Promise<string> {
 
 export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+/** Prefixes app-relative paths with the deploy base (e.g. /mohamed-sabry-portfolio/ on GitHub Pages). */
+export const assetUrl = (path: string) =>
+  path.startsWith('/') && !path.startsWith('//') ? import.meta.env.BASE_URL + path.slice(1) : path
+
+export const siteUrl = (path: string) => `${location.origin}${assetUrl(path)}`
+
+export const isStaticSite = import.meta.env.VITE_STATIC === 'true'
+
 export const slugify = (text: string) =>
   text
     .toLowerCase()

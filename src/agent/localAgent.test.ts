@@ -1,0 +1,41 @@
+import { describe, expect, it } from 'vitest'
+import { defaultAgentSettings, defaultPortfolio } from '../data/portfolio'
+import { detectIntent, localAgentReply } from './localAgent'
+
+const ask = (q: string, lang: 'en' | 'ar' = 'en') => localAgentReply(q, defaultPortfolio, defaultAgentSettings, lang)
+
+describe('localAgent', () => {
+  it('detects intents in English and Arabic', () => {
+    expect(detectIntent('What are his skills?').intent).toBe('skills')
+    expect(detectIntent('كيف أتواصل معه؟').intent).toBe('contact')
+    expect(detectIntent('اعرض مشاريعه').intent).toBe('projects')
+  })
+
+  it('answers the current role from portfolio data', () => {
+    const reply = ask('What is his current role?')
+    expect(reply.text).toContain('Naseej')
+    expect(reply.action).toEqual({ type: 'scroll', target: 'experience' })
+  })
+
+  it('replies in Arabic when asked in Arabic', () => {
+    expect(ask('ما هي أهم مهاراته؟', 'en').text).toContain('مهارات')
+  })
+
+  it('answers about a specific technology', () => {
+    const reply = ask('Does he know React Native?')
+    expect(reply.text).toMatch(/Yes/)
+    expect(reply.text).toContain('React Native')
+  })
+
+  it('answers about a specific project', () => {
+    expect(ask('Tell me about Tafweela').text).toContain('petrol stations')
+  })
+
+  it('returns contact details', () => {
+    expect(ask('how can I contact him?').text).toContain(defaultPortfolio.profile.email)
+  })
+
+  it('falls back with suggestions for unknown questions', () => {
+    expect(ask('qwerty zxcv').text).toContain(defaultAgentSettings.suggestions[0].en)
+  })
+})

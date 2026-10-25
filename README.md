@@ -33,10 +33,13 @@ The Express server in `server/` is the backend. With `MONGODB_URI` set it stores
 
 | Collection | What it stores |
 | --- | --- |
-| `portfolios` | All portfolio content (one document, saved by the admin panel) |
+| `experiences`, `projects`, `skillgroups`, `education`, `certificates`, `languages`, `blog`, `faqs` | One document per item (`_id` = item id, `order` = position) |
+| `site` | Single values: `profile`, `softSkills`, `sections` (visibility) |
 | `messages` | Contact-form messages |
 | `chatlogs` | Visitor questions and assistant answers |
 | `admins` | Admin accounts (bcrypt-hashed passwords) |
+
+An empty database is seeded with the CV content from `src/data` on first start.
 
 ```bash
 docker compose up -d        # local MongoDB on port 27017
@@ -45,7 +48,7 @@ npm run build && npm start  # API + built site on http://localhost:8787
 ```
 
 - The first admin account is created from `ADMIN_USERNAME` / `ADMIN_PASSWORD` on first start.
-- Admin login returns a JWT (8 hours). While signed in, every edit in the admin panel is saved to MongoDB, and all visitors load that content on page load.
+- Admin login returns a JWT (8 hours). While signed in, each admin action calls the matching CRUD endpoint (`src/store/backendSync.ts`), and all visitors load the content from `GET /api/portfolio`.
 - Changing credentials in admin → Settings updates the account in MongoDB.
 - Without a backend (GitHub Pages, or no `MONGODB_URI`) the site falls back to the built-in content and browser-only storage, as before.
 
@@ -54,8 +57,16 @@ npm run build && npm start  # API + built site on http://localhost:8787
 | `POST /api/auth/login` | – | Get a JWT |
 | `GET /api/auth/me` | admin | Current admin |
 | `PUT /api/auth/credentials` | admin | Change username/password |
-| `GET /api/portfolio` | – | Portfolio content (404 until first save) |
-| `PUT /api/portfolio` | admin | Save portfolio content |
+| `GET /api/portfolio` | – | All portfolio content in one response |
+| `POST /api/portfolio/import` | admin | Replace all content (JSON import / reset) |
+| `GET /api/profile`, `/api/softSkills`, `/api/sections` | – | Read a single value |
+| `PUT /api/profile`, `/api/softSkills`, `/api/sections` | admin | Replace a single value |
+| `GET /api/:collection` | – | List items in order (`experiences`, `projects`, `skillGroups`, `education`, `certificates`, `languages`, `blog`, `faqs`) |
+| `GET /api/:collection/:id` | – | One item |
+| `POST /api/:collection` | admin | Create an item (409 if the id exists) |
+| `PUT /api/:collection/:id` | admin | Create or replace an item |
+| `DELETE /api/:collection/:id` | admin | Delete an item |
+| `PUT /api/:collection/order` | admin | Reorder: `{ "ids": [...] }` |
 | `POST /api/messages` | – | Send a contact message |
 | `GET /api/messages` | admin | List messages |
 | `PATCH /api/messages/:id` / `DELETE /api/messages/:id` | admin | Mark read / delete |
@@ -84,7 +95,7 @@ src/
   pages/            Route components (portfolio, blog list/post, 404)
   store/            Redux Toolkit slices, Redux Persist setup and migrations
   types/            Shared TypeScript types
-server/             Express API: MongoDB models (db.ts), auth (auth.ts), REST routes (routes.ts), LLM proxy, Sanity
+server/             Express API: MongoDB connection (db.ts), portfolio collections (portfolioStore.ts), auth (auth.ts), REST routes (routes.ts), LLM proxy, Sanity
 studio/             Sanity Studio (schemas for the assistant content)
 ```
 

@@ -2,11 +2,7 @@
 // still runs and the front end falls back to its built-in content.
 import bcrypt from 'bcryptjs'
 import mongoose, { Schema } from 'mongoose'
-
-const portfolioSchema = new Schema(
-  { key: { type: String, unique: true, default: 'main' }, data: { type: Schema.Types.Mixed, required: true } },
-  { timestamps: true, minimize: false },
-)
+import { seedPortfolioIfEmpty } from './portfolioStore.ts'
 
 const messageSchema = new Schema(
   {
@@ -35,7 +31,6 @@ const adminSchema = new Schema({
   passwordHash: { type: String, required: true },
 })
 
-export const PortfolioModel = mongoose.model('Portfolio', portfolioSchema)
 export const MessageModel = mongoose.model('Message', messageSchema)
 export const ChatLogModel = mongoose.model('ChatLog', chatLogSchema)
 export const AdminModel = mongoose.model('Admin', adminSchema)
@@ -47,6 +42,7 @@ export async function connectDb(uri: string | undefined) {
   try {
     await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
     await ensureAdmin()
+    await seedPortfolioIfEmpty()
     return true
   } catch (error) {
     console.error('MongoDB connection failed:', error instanceof Error ? error.message : error)

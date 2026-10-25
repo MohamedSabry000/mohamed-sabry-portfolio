@@ -13,6 +13,14 @@ type UpsertPayload = {
   [K in CollectionKey]: { collection: K; item: CollectionItem<K> }
 }[CollectionKey]
 
+const mergeWithDefaults = (portfolio: PortfolioState): PortfolioState => ({
+  ...defaultPortfolio,
+  ...portfolio,
+  profile: portfolio.profile ?? defaultPortfolio.profile,
+  softSkills: portfolio.softSkills ?? defaultPortfolio.softSkills,
+  sections: { ...defaultPortfolio.sections, ...portfolio.sections },
+})
+
 const portfolioSlice = createSlice({
   name: 'portfolio',
   initialState: defaultPortfolio,
@@ -51,13 +59,9 @@ const portfolioSlice = createSlice({
     toggleSection(state, action: PayloadAction<SectionKey>) {
       state.sections[action.payload] = !state.sections[action.payload]
     },
-    importPortfolio(_state, action: PayloadAction<PortfolioState>) {
-      return {
-        ...defaultPortfolio,
-        ...action.payload,
-        sections: { ...defaultPortfolio.sections, ...action.payload.sections },
-      }
-    },
+    importPortfolio: (_state, action: PayloadAction<PortfolioState>) => mergeWithDefaults(action.payload),
+    /** Content loaded from the backend (not sent back to the server). */
+    hydratePortfolio: (_state, action: PayloadAction<PortfolioState>) => mergeWithDefaults(action.payload),
     resetPortfolio() {
       return defaultPortfolio
     },
@@ -72,6 +76,7 @@ export const {
   setSoftSkills,
   toggleSection,
   importPortfolio,
+  hydratePortfolio,
   resetPortfolio,
 } = portfolioSlice.actions
 export default portfolioSlice.reducer

@@ -12,6 +12,7 @@ import {
   persistStore,
 } from 'redux-persist'
 import createWebStorage from 'redux-persist/es/storage/createWebStorage'
+import { backendSync } from './backendSync'
 import { migrations } from './migrations'
 import agent from './slices/agentSlice'
 import chat from './slices/chatSlice'
@@ -38,7 +39,7 @@ export const makeStore = (preloadedState?: Partial<ReturnType<typeof rootReducer
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         serializableCheck: { ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER] },
-      }),
+      }).prepend(backendSync.middleware),
   })
 
 export const store = makeStore()

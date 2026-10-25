@@ -4,13 +4,13 @@ import { Button } from '../../components/ui/Button'
 import { useLanguage } from '../../context/LanguageContext'
 import { useAppDispatch, useAppSelector } from '../../store'
 import { clearChat } from '../../store/slices/chatSlice'
-import { deleteMessage, setMessageRead } from '../../store/slices/messagesSlice'
 import PageHeader from '../components/PageHeader'
+import { useMessages } from '../useMessages'
 
 export default function MessagesPage() {
   const { t, lang } = useLanguage()
   const dispatch = useAppDispatch()
-  const messages = useAppSelector((state) => state.messages.items)
+  const { messages, setRead, remove } = useMessages()
   const chat = useAppSelector((state) => state.chat.messages)
   const fmt = (iso: string) =>
     new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
@@ -36,7 +36,7 @@ export default function MessagesPage() {
                   <div className="flex gap-1">
                     <button
                       type="button"
-                      onClick={() => dispatch(setMessageRead({ id: m.id, read: !m.read }))}
+                      onClick={() => void setRead(m.id, !m.read)}
                       className="grid size-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                       aria-label={m.read ? t('admin.markUnread') : t('admin.markRead')}
                       title={m.read ? t('admin.markUnread') : t('admin.markRead')}
@@ -45,7 +45,7 @@ export default function MessagesPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => window.confirm(t('common.confirmDelete')) && dispatch(deleteMessage(m.id))}
+                      onClick={() => window.confirm(t('common.confirmDelete')) && void remove(m.id)}
                       className="grid size-9 place-items-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"
                       aria-label={t('common.delete')}
                     >

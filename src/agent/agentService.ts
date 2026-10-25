@@ -112,7 +112,7 @@ function chatSessionId() {
   return id
 }
 
-/** Saves a question/answer pair to Sanity through the API server (fire and forget). */
+/** Saves a question/answer pair through the API server to MongoDB and/or Sanity (fire and forget). */
 export function logChatToSanity(entry: { question: string; answer: string; source: 'llm' | 'local'; lang: Lang }) {
   void fetch('/api/chat/log', {
     method: 'POST',

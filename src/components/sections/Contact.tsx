@@ -1,4 +1,5 @@
 import { CheckCircle2, Mail, MapPin, Phone } from 'lucide-react'
+import { api } from '../../lib/api'
 import { useActionState } from 'react'
 import { useLanguage } from '../../context/LanguageContext'
 import type { TranslationKey } from '../../i18n/translations'
@@ -37,7 +38,8 @@ export default function Contact() {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
         return { status: 'error', error: 'contact.errorEmail', values }
       }
-      await wait(600)
+      const saved = await api('/messages', { method: 'POST', body: JSON.stringify(values) }).catch(() => null)
+      if (!saved) await wait(600)
       dispatch(addMessage({ id: uid('msg'), ...values, createdAt: new Date().toISOString(), read: false }))
       return { status: 'success', values: emptyValues }
     },

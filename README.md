@@ -27,6 +27,40 @@ npm run dev        # web on http://localhost:5173 + API on http://localhost:8787
 | `npm test` | Vitest + React Testing Library |
 | `npm run lint` | oxlint |
 
+## Backend: Node.js + MongoDB
+
+The Express server in `server/` is the backend. With `MONGODB_URI` set it stores data in MongoDB (Mongoose):
+
+| Collection | What it stores |
+| --- | --- |
+| `portfolios` | All portfolio content (one document, saved by the admin panel) |
+| `messages` | Contact-form messages |
+| `chatlogs` | Visitor questions and assistant answers |
+| `admins` | Admin accounts (bcrypt-hashed passwords) |
+
+```bash
+docker compose up -d        # local MongoDB on port 27017
+cp .env.example .env        # set MONGODB_URI, JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD
+npm run build && npm start  # API + built site on http://localhost:8787
+```
+
+- The first admin account is created from `ADMIN_USERNAME` / `ADMIN_PASSWORD` on first start.
+- Admin login returns a JWT (8 hours). While signed in, every edit in the admin panel is saved to MongoDB, and all visitors load that content on page load.
+- Changing credentials in admin → Settings updates the account in MongoDB.
+- Without a backend (GitHub Pages, or no `MONGODB_URI`) the site falls back to the built-in content and browser-only storage, as before.
+
+| Endpoint | Auth | Purpose |
+| --- | --- | --- |
+| `POST /api/auth/login` | – | Get a JWT |
+| `GET /api/auth/me` | admin | Current admin |
+| `PUT /api/auth/credentials` | admin | Change username/password |
+| `GET /api/portfolio` | – | Portfolio content (404 until first save) |
+| `PUT /api/portfolio` | admin | Save portfolio content |
+| `POST /api/messages` | – | Send a contact message |
+| `GET /api/messages` | admin | List messages |
+| `PATCH /api/messages/:id` / `DELETE /api/messages/:id` | admin | Mark read / delete |
+| `GET /api/chat-logs` | admin | Visitor chat logs |
+
 ## Developer guide
 
 ### Project structure
@@ -46,11 +80,11 @@ src/
   context/          React contexts: language (RTL), theme, auth, toast, chat UI
   data/             Seed content: CV data, blog posts, FAQs, interview series
   i18n/             English and Arabic UI strings
-  lib/              Small helpers (utils, blog)
+  lib/              Small helpers (utils, blog, api client for the backend)
   pages/            Route components (portfolio, blog list/post, 404)
   store/            Redux Toolkit slices, Redux Persist setup and migrations
   types/            Shared TypeScript types
-server/             Express API (LLM proxy, Sanity read/log endpoints)
+server/             Express API: MongoDB models (db.ts), auth (auth.ts), REST routes (routes.ts), LLM proxy, Sanity
 studio/             Sanity Studio (schemas for the assistant content)
 ```
 

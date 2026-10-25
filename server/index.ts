@@ -9,6 +9,10 @@ try {
   // no .env file
 }
 const { buildSanityPrompt, getAssistantContent, logConversation, sanityStatus } = await import('./sanity.ts')
+const { connectDb, isDbConnected } = await import('./db.ts')
+const { api, saveChatLog } = await import('./routes.ts')
+
+const dbConnected = await connectDb(process.env.MONGODB_URI)
 
 const app = express()
 
@@ -17,7 +21,7 @@ const API_KEY = process.env.OPENAI_API_KEY ?? ''
 const BASE_URL = (process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1').replace(/\/$/, '')
 const MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o-mini'
 
-app.use(express.json({ limit: '200kb' }))
+app.use(express.json({ limit: '2mb' }))
 
 // Basic per-IP rate limit to protect the API key.
 const WINDOW_MS = 10 * 60 * 1000
@@ -32,18 +36,18 @@ function rateLimited(ip: string) {
 }
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, llm: Boolean(API_KEY), model: API_KEY ? MODEL : null, sanity: sanityStatus() })
+  res.json({ ok: true, llm: Boolean(API_KEY), model: API_KEY ? MODEL : null, sanity: sanityStatus(), database: isDbConnected() })
 })
 
 // Assistant settings + knowledge managed in Sanity (public, read-only).
 app.get('/api/assistant', async (_req, res) => {
   const content = await getAssistantContent()
   res.setHeader('cache-control', 'public, max-age=30')
-  res.json(content)
+  res.json({ ...content, logging: content.logging || isDbConnected() })
 })
 
 app.post('/api/chat/log', async (req, res) => {
-  if (!sanityStatus().logging) {
+  if (!sanityStatus().logging && !isDbConnected()) {
     res.status(204).end()
     return
   }
@@ -64,13 +68,15 @@ app.post('/api/chat/log', async (req, res) => {
     return
   }
   try {
-    await logConversation(entry)
+    await Promise.all([saveChatLog(entry), sanityStatus().logging ? logConversation(entry) : null])
     res.status(204).end()
   } catch (error) {
-    console.error('sanity log failed', error instanceof Error ? error.message : error)
+    console.error('chat log failed', error instanceof Error ? error.message : error)
     res.status(502).json({ error: 'log_failed' })
   }
 })
+
+app.use('/api', api)
 
 interface ChatBody {
   system?: string
@@ -154,5 +160,6 @@ if (existsSync(distDir)) {
 app.listen(PORT, () => {
   const sanity = sanityStatus()
   console.log(`API server on http://localhost:${PORT} — LLM ${API_KEY ? `enabled (${MODEL})` : 'disabled (local agent fallback)'}`)
+  console.log(`MongoDB: ${dbConnected ? 'connected' : 'not connected (set MONGODB_URI)'}`)
   console.log(`Sanity: ${sanity.configured ? `connected (dataset ${sanity.dataset}${sanity.logging ? ', chat logging on' : ''})` : 'not configured'}`)
 })

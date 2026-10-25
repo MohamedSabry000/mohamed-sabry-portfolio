@@ -5,6 +5,7 @@ import { Field, Input } from '../../components/ui/Field'
 import { useLanguage } from '../../context/LanguageContext'
 import { useToast } from '../../context/ToastContext'
 import { useAuth } from '../../context/AuthContext'
+import { api } from '../../lib/api'
 import { sha256 } from '../../lib/utils'
 import { useAppDispatch, useAppSelector } from '../../store'
 import { importPortfolio, resetPortfolio } from '../../store/slices/portfolioSlice'
@@ -26,6 +27,7 @@ export default function SettingsPage() {
     const password = String(formData.get('password') ?? '')
     const confirm = String(formData.get('confirm') ?? '')
     if (!user || password.length < 6 || password !== confirm) return t('admin.passwordMismatch')
+    await api('/auth/credentials', { method: 'PUT', body: JSON.stringify({ username: user, password }) }).catch(() => null)
     dispatch(setCredentials({ username: user, passwordHash: await sha256(password) }))
     await login(user, password)
     notify(t('common.saved'))

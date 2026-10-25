@@ -10,11 +10,13 @@ import { LanguageProvider } from './context/LanguageContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
 import { persistor, store } from './store'
+import { startBackendSync } from './store/backendSync'
 import './index.css'
 import './styles/effects.less'
 
 // Start loading the Sanity-managed assistant content before the chat widget renders.
 void getAssistantContent()
+startBackendSync(store)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -27,6 +27,50 @@ npm run dev        # web on http://localhost:5173 + API on http://localhost:8787
 | `npm test` | Vitest + React Testing Library |
 | `npm run lint` | oxlint |
 
+## Developer guide
+
+### Project structure
+
+```
+src/
+  admin/            Admin panel: layout, pages and the generic collection editor
+    collectionSchemas.ts   Field definitions for every editable collection
+  agent/            AI assistant
+    intents.ts      Keyword-based intent detection (English/Arabic)
+    matching.ts     Finds mentioned projects, technologies and FAQ entries
+    localAgent.ts   Builds answers for the built-in (offline) engine
+    agentService.ts Chooses between the LLM API and the local engine
+    knowledge.ts    System prompt / knowledge base for the LLM
+    sanityContent.ts, sanityShared.ts   Loads assistant content from Sanity
+  components/       UI building blocks, layout, public sections, chat widget, blog
+  context/          React contexts: language (RTL), theme, auth, toast, chat UI
+  data/             Seed content: CV data, blog posts, FAQs, interview series
+  i18n/             English and Arabic UI strings
+  lib/              Small helpers (utils, blog)
+  pages/            Route components (portfolio, blog list/post, 404)
+  store/            Redux Toolkit slices, Redux Persist setup and migrations
+  types/            Shared TypeScript types
+server/             Express API (LLM proxy, Sanity read/log endpoints)
+studio/             Sanity Studio (schemas for the assistant content)
+```
+
+### Data flow
+
+Seed data in `src/data` is the initial Redux state. Redux Persist saves it to `localStorage`, and the admin panel edits it through `portfolioSlice` actions (`upsertItem`, `removeItem`, `moveItem`, ...). Public sections read it with `useAppSelector`.
+
+### Common tasks
+
+- **Add a UI string:** add the key to both `en` and `ar` in `src/i18n/translations.ts`, then use `t('your.key')`.
+- **Add an editable collection:** add the type to `src/types`, the seed data to `src/data`, the key to `CollectionKey`, a schema to `src/admin/collectionSchemas.ts`, and a route and nav item in `App.tsx` / `AdminLayout.tsx`.
+- **Change seed data for existing visitors:** bump `version` in `src/store/index.ts` and add a migration in `src/store/migrations.ts`.
+- **Teach the built-in assistant a new topic:** add keywords to `src/agent/intents.ts` and a reply in `localAgent.ts`, or simply add an FAQ entry in Sanity.
+
+### Checks
+
+```bash
+npm run typecheck && npm test && npm run lint && npm run build
+```
+
 ## Deploy to GitHub Pages
 
 Live site: https://mohamedsabry000.github.io/mohamed-sabry-portfolio/

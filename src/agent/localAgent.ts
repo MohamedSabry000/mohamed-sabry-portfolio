@@ -1,180 +1,18 @@
-import { isArabicText, siteUrl } from '../lib/utils'
+import { siteUrl } from '../lib/utils'
 import { publishedPosts } from '../lib/blog'
 import type { AgentSettings, ChatAction, FaqItem, Lang, PortfolioState, SectionKey } from '../types'
+import { detectIntent, detectLang, normalize, sectionFor, type Intent } from './intents'
+import { findFaq, findMentionedProject, findMentionedTech } from './matching'
+
+// Composes answers for the built-in (offline) assistant from portfolio data and FAQ/knowledge entries.
 
 export interface AgentReply {
   text: string
   action?: ChatAction
 }
 
-export type Intent =
-  | 'greeting'
-  | 'thanks'
-  | 'about'
-  | 'current'
-  | 'experience'
-  | 'years'
-  | 'skills'
-  | 'projects'
-  | 'education'
-  | 'certificates'
-  | 'contact'
-  | 'location'
-  | 'languages'
-  | 'availability'
-  | 'cv'
-  | 'salary'
-  | 'agent'
-  | 'blog'
-
-export const normalize = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/[\u064B-\u0652\u0640]/g, '')
-    .replace(/[أإآ]/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/ى/g, 'ي')
-    .replace(/[^\p{L}\p{N}#+.\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-const keywords: Record<Intent, string[]> = {
-  greeting: ['hi', 'hello', 'hey', 'good morning', 'good evening', 'salam', 'مرحبا', 'اهلا', 'السلام', 'هاي', 'صباح', 'مساء'],
-  thanks: ['thanks', 'thank you', 'thx', 'appreciate', 'شكرا', 'متشكر', 'جزاك'],
-  about: ['who is', 'who are', 'about him', 'about mohamed', 'introduce', 'tell me about', 'summary', 'background', 'من هو', 'عرفني', 'نبذه', 'عن محمد', 'تعريف'],
-  current: ['current', 'currently', 'now', 'present', 'naseej', 'medad', 'where does he work', 'role', 'الحالي', 'حاليا', 'الان', 'نسيج', 'مداد', 'دوره', 'يعمل'],
-  experience: ['experience', 'worked', 'work history', 'career', 'companies', 'jobs', 'employment', 'خبره', 'خبرات', 'خبرته', 'شركات', 'وظائف', 'مسيره', 'عمل'],
-  years: ['how many years', 'years', 'how long', 'senior', 'سنوات', 'سنه', 'كم سنه', 'مده'],
-  skills: ['skill', 'skills', 'stack', 'technolog', 'tech', 'tools', 'framework', 'good at', 'expert', 'مهارات', 'مهاراته', 'تقنيات', 'ادوات', 'يجيد', 'خبير', 'لغات البرمجه'],
-  projects: ['project', 'projects', 'portfolio', 'built', 'work samples', 'apps', 'show me', 'مشاريع', 'مشروع', 'مشاريعه', 'اعمال', 'اعماله', 'تطبيقات', 'اعرض'],
-  education: ['education', 'degree', 'university', 'study', 'studied', 'diploma', 'iti', 'bachelor', 'college', 'تعليم', 'جامعه', 'دراسه', 'درس', 'بكالوريوس', 'دبلومه', 'كليه', 'مؤهل'],
-  certificates: ['certificate', 'certification', 'course', 'nanodegree', 'training', 'udacity', 'شهادات', 'شهاده', 'دورات', 'كورس', 'تدريب', 'يوداسيتي'],
-  contact: ['contact', 'email', 'mail', 'phone', 'reach', 'hire', 'call', 'whatsapp', 'linkedin', 'github', 'تواصل', 'ايميل', 'بريد', 'هاتف', 'رقم', 'توظيف', 'اتصل', 'واتساب', 'لينكد'],
-  location: ['where is he', 'location', 'live', 'based', 'city', 'country', 'egypt', 'cairo', 'relocat', 'remote', 'اين', 'موقع', 'يسكن', 'مدينه', 'دوله', 'مصر', 'القاهره', 'عن بعد'],
-  languages: ['speak', 'spoken', 'arabic', 'english', 'language', 'يتحدث', 'اللغات', 'الانجليزيه', 'العربيه', 'لغه'],
-  availability: ['available', 'availability', 'open to work', 'freelance', 'opportunit', 'متاح', 'فرصه', 'فرص', 'متفرغ', 'عمل حر'],
-  cv: ['cv', 'resume', 'résumé', 'download', 'سيره', 'السيره الذاتيه', 'تحميل'],
-  salary: ['salary', 'rate', 'price', 'cost', 'expected', 'راتب', 'سعر', 'تكلفه', 'اجر'],
-  blog: ['blog', 'article', 'articles', 'post', 'posts', 'write', 'writes', 'writing', 'مدونه', 'مقال', 'مقالات', 'تدوينه', 'يكتب'],
-  agent: ['who are you', 'are you ai', 'are you a bot', 'what can you do', 'help', 'من انت', 'ماذا تستطيع', 'مساعده', 'ساعدني'],
-}
-
-const sectionFor: Partial<Record<Intent, SectionKey>> = {
-  about: 'about',
-  experience: 'experience',
-  current: 'experience',
-  years: 'experience',
-  skills: 'skills',
-  projects: 'projects',
-  education: 'education',
-  certificates: 'certificates',
-  contact: 'contact',
-  availability: 'contact',
-  salary: 'contact',
-  blog: 'blog',
-}
-
-const hasKeyword = (text: string, keyword: string) => {
-  const k = normalize(keyword)
-  if (/^[a-z#+. ]+$/.test(k) && k.length <= 4) {
-    return new RegExp(`(^|\\s)${k.replace(/[.+#]/g, '\\$&')}(\\s|$)`).test(text)
-  }
-  return text.includes(k)
-}
-
-export function detectIntent(question: string): { intent: Intent | null; scores: Partial<Record<Intent, number>> } {
-  const text = normalize(question)
-  const scores: Partial<Record<Intent, number>> = {}
-  for (const [intent, words] of Object.entries(keywords) as Array<[Intent, string[]]>) {
-    const score = words.reduce((sum, word) => sum + (hasKeyword(text, word) ? normalize(word).length : 0), 0)
-    if (score > 0) scores[intent] = score
-  }
-  const ranked = (Object.entries(scores) as Array<[Intent, number]>).sort((a, b) => b[1] - a[1])
-  return { intent: ranked[0]?.[0] ?? null, scores }
-}
-
-export const detectLang = (question: string, fallback: Lang): Lang => {
-  if (isArabicText(question)) return 'ar'
-  if (/[a-z]/i.test(question)) return 'en'
-  return fallback
-}
-
-const allTech = (portfolio: PortfolioState) => {
-  const set = new Set<string>()
-  portfolio.skillGroups.forEach((group) => group.items.forEach((item) => set.add(item)))
-  portfolio.projects.forEach((project) => project.tech.forEach((item) => set.add(item)))
-  portfolio.experiences.forEach((exp) => exp.tech.forEach((item) => set.add(item)))
-  return [...set]
-}
-
-const techAliases: Record<string, string[]> = {
-  'react.js': ['react', 'reactjs', 'رياكت'],
-  'next.js': ['next', 'nextjs', 'نكست'],
-  'node.js': ['node', 'nodejs', 'نود'],
-  typescript: ['ts', 'تايب سكريبت'],
-  'javascript (es6+)': ['javascript', 'js', 'جافاسكريبت'],
-  'tailwind css': ['tailwind', 'تيلويند'],
-  'react native': ['react native', 'mobile', 'موبايل', 'جوال'],
-  'rtl layouts': ['rtl', 'right to left', 'arabic support'],
-  mongodb: ['mongo'],
-  'express.js': ['express'],
-}
-
-export function findMentionedTech(question: string, portfolio: PortfolioState) {
-  const text = normalize(question)
-  return allTech(portfolio).filter((tech) => {
-    const base = normalize(tech.replace(/\(.*?\)/g, ''))
-    const aliases = [base, ...(techAliases[tech.toLowerCase()] ?? [])]
-    return aliases.some((alias) => alias.length > 1 && hasKeyword(text, alias))
-  })
-}
-
-export function findMentionedProject(question: string, portfolio: PortfolioState) {
-  const text = normalize(question)
-  const generic = new Set(['system', 'platform', 'app', 'apps', 'store', 'management', 'project', 'university'])
-  allTech(portfolio).forEach((tech) => normalize(tech).split(' ').forEach((word) => generic.add(word)))
-  return portfolio.projects.find((project) => {
-    if ((project.links ?? []).some((link) => text.includes(normalize(link.label)))) return true
-    const names = [project.title.en, project.title.ar].map((n) => normalize(n.replace(/\(.*?\)/g, '')))
-    return names.some(
-      (name) =>
-        name.length > 2 &&
-        (text.includes(name) || name.split(' ').some((w) => w.length > 3 && !generic.has(w) && hasKeyword(text, w))),
-    )
-  })
-}
-
-const stopwords = new Set([
-  'the', 'and', 'for', 'you', 'your', 'does', 'did', 'can', 'could', 'what', 'which', 'how', 'his', 'him', 'are', 'with',
-  'about', 'who', 'where', 'when', 'will', 'have', 'has', 'that', 'this', 'from', 'into', 'any', 'kind',
-  'هل', 'ما', 'ماذا', 'كيف', 'من', 'في', 'علي', 'عن', 'الي', 'او', 'هو', 'لديه', 'يمكن', 'التي', 'الذي', 'مع', 'نوع',
-])
-const tokens = (text: string) => normalize(text).split(' ').filter((word) => word.length > 2 && !stopwords.has(word))
-
-/** Finds the FAQ entry whose question best matches the visitor's question. */
-export function findFaq(question: string, items: FaqItem[]): FaqItem | undefined {
-  const text = normalize(question)
-  const asked = new Set(tokens(question))
-  let best: { faq: FaqItem; score: number } | undefined
-  for (const faq of items) {
-    // Trigger keywords: a multi-word phrase is a strong signal, single words need company.
-    const keywordScore = (faq.keywords ?? [])
-      .map(normalize)
-      .filter((keyword, index, all) => keyword.length > 1 && all.indexOf(keyword) === index && hasKeyword(text, keyword))
-      .reduce((sum, keyword) => sum + (keyword.includes(' ') ? 2 : 1), 0)
-    let questionScore = 0
-    for (const variant of [faq.question.en, faq.question.ar]) {
-      const words = [...new Set(tokens(variant))]
-      const hits = words.filter((word) => asked.has(word)).length
-      const ratio = hits / Math.max(words.length, asked.size, 1)
-      if ((hits >= 2 && ratio >= 0.5) || (hits >= 1 && ratio === 1)) questionScore = Math.max(questionScore, ratio)
-    }
-    if (keywordScore < 2 && questionScore === 0) continue
-    const score = questionScore * 3 + keywordScore
-    if (!best || score > best.score) best = { faq, score }
-  }
-  return best?.faq
-}
+export { detectIntent, detectLang, findFaq, findMentionedProject, findMentionedTech, normalize }
+export type { Intent }
 
 export function detectSectionAction(question: string, portfolio: PortfolioState): ChatAction | undefined {
   const { intent } = detectIntent(question)

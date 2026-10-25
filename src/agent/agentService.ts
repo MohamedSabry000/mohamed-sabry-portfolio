@@ -1,5 +1,5 @@
 import type { AgentSettings, ChatAction, ChatMessage, FaqItem, Lang, PortfolioState } from '../types'
-import { isStaticSite } from '../lib/utils'
+import { apiBase, isStaticSite } from '../lib/utils'
 import { buildSystemPrompt } from './knowledge'
 import { detectSectionAction, localAgentReply } from './localAgent'
 
@@ -25,7 +25,7 @@ export async function checkAgentHealth(force = false): Promise<AgentHealth> {
     return { reachable: true, llm: healthCache.llm, sanity: healthCache.sanity }
   }
   try {
-    const res = await fetch('/api/health', { headers: { accept: 'application/json' } })
+    const res = await fetch(`${apiBase}/health`, { headers: { accept: 'application/json' } })
     if (!res.ok || !res.headers.get('content-type')?.includes('json')) throw new Error('unreachable')
     const data = (await res.json()) as { llm?: boolean; sanity?: Partial<AgentHealth['sanity']> }
     const sanity = { configured: Boolean(data.sanity?.configured), logging: Boolean(data.sanity?.logging) }
@@ -42,7 +42,7 @@ async function askRemote(
   system: string,
   onToken?: (text: string) => void,
 ): Promise<string> {
-  const res = await fetch('/api/chat', {
+  const res = await fetch(`${apiBase}/chat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -112,9 +112,9 @@ function chatSessionId() {
   return id
 }
 
-/** Saves a question/answer pair through the API server to MongoDB and/or Sanity (fire and forget). */
+/** Saves a question/answer pair through the backend to MongoDB and/or Sanity (fire and forget). */
 export function logChatToSanity(entry: { question: string; answer: string; source: 'llm' | 'local'; lang: Lang }) {
-  void fetch('/api/chat/log', {
+  void fetch(`${apiBase}/chat/log`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ ...entry, sessionId: chatSessionId() }),

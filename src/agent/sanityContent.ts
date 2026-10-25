@@ -1,4 +1,4 @@
-import { isStaticSite } from '../lib/utils'
+import { apiBase, isStaticSite } from '../lib/utils'
 import type { AgentSettings, FaqItem, Localized } from '../types'
 import { ASSISTANT_QUERY, normalizeContent } from './sanityShared'
 
@@ -39,7 +39,7 @@ export function getAssistantContent(): Promise<AssistantContent> {
     contentPromise ??= fetchFromSanityCdn().catch(() => emptyAssistantContent)
     return contentPromise
   }
-  contentPromise ??= fetch('/api/assistant', { headers: { accept: 'application/json' } })
+  contentPromise ??= fetch(`${apiBase}/assistant`, { headers: { accept: 'application/json' } })
     .then(async (res) => {
       if (!res.ok || !res.headers.get('content-type')?.includes('json')) return emptyAssistantContent
       return { ...emptyAssistantContent, ...((await res.json()) as Partial<AssistantContent>) }

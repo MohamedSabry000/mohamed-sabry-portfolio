@@ -1,9 +1,8 @@
 // Thin client for the Node.js/MongoDB backend. On static hosting (GitHub Pages) there is no API,
 // so every call resolves to `null` and the app keeps using its built-in/persisted content.
-import { isStaticSite } from './utils'
+import { apiBase, isStaticSite } from './utils'
 
 const TOKEN_KEY = 'ms-admin-token'
-const API_BASE = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api`
 
 export const hasBackend = !isStaticSite
 
@@ -28,7 +27,7 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}): Pr
   const token = authToken.get()
   let response: Response
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    response = await fetch(`${apiBase}${path}`, {
       ...init,
       headers: {
         'Content-Type': 'application/json',

@@ -22,7 +22,12 @@ export const assetUrl = (path: string) =>
 
 export const siteUrl = (path: string) => `${location.origin}${assetUrl(path)}`
 
-export const isStaticSite = import.meta.env.VITE_STATIC === 'true'
+// The backend lives in its own repo (mohamed-sabry-portfolio-api). VITE_API_URL points at it;
+// without it the API is expected on the same origin (local dev uses the Vite proxy).
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
+export const apiBase = API_URL ? `${API_URL}/api` : `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api`
+/** True for a static build with no backend configured (e.g. GitHub Pages without VITE_API_URL). */
+export const isStaticSite = import.meta.env.VITE_STATIC === 'true' && !API_URL
 
 export const slugify = (text: string) =>
   text

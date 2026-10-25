@@ -78,6 +78,15 @@ Seed data in `src/data` is the initial Redux state. Redux Persist saves it to `l
 npm run typecheck && npm test && npm run lint && npm run build
 ```
 
+## Deploy to Vercel
+
+The front end and the [API](https://github.com/MohamedSabry000/mohamed-sabry-portfolio-api) are two Vercel projects.
+
+1. Deploy the API repo first (see its README) and note its URL, e.g. `https://mohamed-sabry-portfolio-api.vercel.app`.
+2. Vercel → Add New → Project → import this repo. `vercel.json` sets the Vite build, the `dist` output and the SPA fallback (direct links like `/blog/...` load the app).
+3. Environment variable: `VITE_API_URL` = the API URL from step 1. It is baked in at build time, so redeploy after changing it.
+4. Add this project's domain to the API's `CORS_ORIGINS` (e.g. `https://mohamed-sabry-portfolio.vercel.app`, or `https://*.vercel.app` to include previews).
+
 ## Deploy to GitHub Pages
 
 Live site: https://mohamedsabry000.github.io/mohamed-sabry-portfolio/

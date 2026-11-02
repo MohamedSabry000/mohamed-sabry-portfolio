@@ -46,3 +46,18 @@ describe('v4 migration', () => {
     expect(migrated.blog).toHaveLength(defaultPortfolio.blog.length)
   })
 })
+
+describe('v8 migration', () => {
+  it('refreshes unedited seeded post content and keeps edited languages', async () => {
+    const { contentHash, refreshSeedPostContent } = await import('./migrations')
+    const seed = defaultPortfolio.blog.find((p) => p.id === 'post_capacitor')!
+    expect(contentHash('abc')).toBe(contentHash('abc'))
+    const migrated = refreshSeedPostContent({
+      ...defaultPortfolio,
+      blog: [{ ...seed, content: { en: 'old', ar: 'معدل' } }],
+    })
+    // Neither language matches the v7 seed hash, so both are treated as edits and kept.
+    expect(migrated.blog[0].content).toEqual({ en: 'old', ar: 'معدل' })
+    expect(refreshSeedPostContent({ ...defaultPortfolio }).blog).toEqual(defaultPortfolio.blog)
+  })
+})

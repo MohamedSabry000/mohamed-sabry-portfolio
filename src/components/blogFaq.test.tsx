@@ -73,4 +73,12 @@ describe('Markdown', () => {
     expect(screen.getByRole('link', { name: 'docs' })).toHaveAttribute('href', 'https://react.dev')
     expect(container.querySelector('script')).toBeNull()
   })
+  it('renders fenced code and tables', () => {
+    const { container } = render(
+      <Markdown content={'```bash\nnpx cap sync\n```\n\n| | Capacitor | PWA |\n| --- | --- | --- |\n| Stores | Yes | `TWA` |'} />,
+    )
+    expect(container.querySelector('pre code')).toHaveTextContent('npx cap sync')
+    expect(screen.getAllByRole('columnheader')).toHaveLength(3)
+    expect(screen.getByRole('cell', { name: 'TWA' }).querySelector('code')).not.toBeNull()
+  })
 })

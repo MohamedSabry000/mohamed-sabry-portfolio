@@ -45,6 +45,42 @@ export function addNewSeedPosts(portfolio: PortfolioState): PortfolioState {
   return missing.length ? { ...portfolio, blog: [...missing, ...blog] } : portfolio
 }
 
+/** FNV-1a hash of a string's UTF-16 code units, used to recognise unedited seed content. */
+export function contentHash(text: string): number {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193) >>> 0
+  return hash
+}
+
+/** Hashes of the v7 seed content of posts whose text changed in v8 (code examples added). */
+const v7PostHashes: Record<string, Record<'en' | 'ar', number>> = {
+  post_js_fundamentals: { en: 663783076, ar: 3986835170 },
+  post_js_intermediate: { en: 106774855, ar: 2705072118 },
+  post_js_advanced: { en: 2598799197, ar: 3970786646 },
+  post_react_fundamentals: { en: 2841178566, ar: 3314316856 },
+  post_react_intermediate: { en: 3537220460, ar: 1449408208 },
+  post_react_advanced: { en: 1624852967, ar: 2299854657 },
+  post_rtl: { en: 579920860, ar: 1505099359 },
+  post_forms: { en: 1588171427, ar: 4259255180 },
+  post_capacitor: { en: 970238078, ar: 3233057618 },
+}
+
+/** v8: replaces the content of seeded posts with the updated seed text, unless the admin edited that language. */
+export function refreshSeedPostContent(portfolio: PortfolioState): PortfolioState {
+  if (!portfolio.blog) return portfolio
+  const blog = portfolio.blog.map((post) => {
+    const oldHashes = v7PostHashes[post.id]
+    const seed = defaultPortfolio.blog.find((item) => item.id === post.id)
+    if (!oldHashes || !seed) return post
+    const content = { ...post.content }
+    for (const lang of ['en', 'ar'] as const) {
+      if (contentHash(content[lang] ?? '') === oldHashes[lang]) content[lang] = seed.content[lang]
+    }
+    return { ...post, content }
+  })
+  return { ...portfolio, blog }
+}
+
 type RootPersisted = PersistedState & { portfolio?: PortfolioState }
 
 export const migrations: MigrationManifest = {
@@ -71,5 +107,9 @@ export const migrations: MigrationManifest = {
   7: (state) => {
     const root = state as RootPersisted
     return (root?.portfolio ? { ...root, portfolio: addNewSeedPosts(root.portfolio) } : root) as PersistedState
+  },
+  8: (state) => {
+    const root = state as RootPersisted
+    return (root?.portfolio ? { ...root, portfolio: refreshSeedPostContent(root.portfolio) } : root) as PersistedState
   },
 }

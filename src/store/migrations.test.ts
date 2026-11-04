@@ -61,3 +61,15 @@ describe('v8 migration', () => {
     expect(refreshSeedPostContent({ ...defaultPortfolio }).blog).toEqual(defaultPortfolio.blog)
   })
 })
+
+describe('v9 migration', () => {
+  it('adds the Redux, Context API and Node.js interview post to older persisted blogs', async () => {
+    const { addNewSeedPosts } = await import('./migrations')
+    const older = defaultPortfolio.blog.filter((p) => p.id !== 'post_redux_context_node')
+    const migrated = addNewSeedPosts({ ...defaultPortfolio, blog: older })
+    const post = migrated.blog.find((p) => p.id === 'post_redux_context_node')
+    expect(post?.content.en.match(/^### \d+\./gm)).toHaveLength(28)
+    expect(post?.content.ar.match(/^### \d+\./gm)).toHaveLength(28)
+    expect(migrated.blog).toHaveLength(defaultPortfolio.blog.length)
+  })
+})

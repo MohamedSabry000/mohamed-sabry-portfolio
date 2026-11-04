@@ -112,4 +112,8 @@ export const migrations: MigrationManifest = {
     const root = state as RootPersisted
     return (root?.portfolio ? { ...root, portfolio: refreshSeedPostContent(root.portfolio) } : root) as PersistedState
   },
+  9: (state) => {
+    const root = state as RootPersisted
+    return (root?.portfolio ? { ...root, portfolio: addNewSeedPosts(root.portfolio) } : root) as PersistedState
+  },
 }

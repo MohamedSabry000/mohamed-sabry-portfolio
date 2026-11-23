@@ -6,19 +6,22 @@ import { Field, Input } from '../../components/ui/Field'
 import { LanguageToggle, ThemeToggle } from '../../components/ui/Toggles'
 import { useAuth } from '../../context/AuthContext'
 import { useLanguage } from '../../context/LanguageContext'
-import { wait } from '../../lib/utils'
+import { hasApiUrl, wait } from '../../lib/utils'
 import { useAppSelector } from '../../store'
 import { DEFAULT_PASSWORD_HASH } from '../../store/slices/settingsSlice'
+
+const ERROR_KEYS = { invalid: 'admin.invalid', rate_limited: 'admin.tooManyAttempts', unavailable: 'admin.serverUnavailable' } as const
 
 export default function LoginPage() {
   const { t } = useLanguage()
   const { isAuthenticated, login } = useAuth()
-  const usingDefault = useAppSelector((state) => state.settings.passwordHash === DEFAULT_PASSWORD_HASH)
+  // The default-credentials hint only applies to the browser-only login used when there is no backend.
+  const usingDefault = useAppSelector((state) => !hasApiUrl && state.settings.passwordHash === DEFAULT_PASSWORD_HASH)
 
   const [error, loginAction] = useActionState<string | null, FormData>(async (_prev, formData) => {
     await wait(400)
-    const ok = await login(String(formData.get('username') ?? ''), String(formData.get('password') ?? ''))
-    return ok ? null : t('admin.invalid')
+    const result = await login(String(formData.get('username') ?? ''), String(formData.get('password') ?? ''))
+    return result === 'ok' ? null : t(ERROR_KEYS[result])
   }, null)
 
   if (isAuthenticated) return <Navigate to="/admin" replace />

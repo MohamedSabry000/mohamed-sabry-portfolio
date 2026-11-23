@@ -100,7 +100,12 @@ Then publish `dist/` to the `gh-pages` branch. Without `VITE_API_URL` the Pages 
 
 ## Admin panel
 
-Go to `/admin`. Default credentials: **admin / admin123**. Change them under **Settings** right away.
+Go to `/admin`.
+
+- **With the API** (`VITE_API_URL` set, e.g. on Vercel): sign in with the admin account stored in MongoDB (created from the API's `ADMIN_USERNAME` / `ADMIN_PASSWORD`). Login is checked only by the server; there is no browser fallback.
+- **Without the API** (GitHub Pages, local dev): a browser-only login with default credentials **admin / admin123**. Edits stay in that browser, so this only protects your own previews.
+
+New passwords need at least 12 characters.
 
 From the admin panel you can:
 

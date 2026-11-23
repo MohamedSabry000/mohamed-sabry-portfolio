@@ -13,10 +13,13 @@ import { setCredentials } from '../../store/slices/settingsSlice'
 import type { PortfolioState } from '../../types'
 import PageHeader from '../components/PageHeader'
 
+/** Matches the API's minimum (MIN_PASSWORD_LENGTH in mohamed-sabry-portfolio-api/src/db.ts). */
+const MIN_PASSWORD_LENGTH = 12
+
 export default function SettingsPage() {
   const { t } = useLanguage()
   const { notify } = useToast()
-  const { login } = useAuth()
+  const { login, isServerSession } = useAuth()
   const dispatch = useAppDispatch()
   const portfolio = useAppSelector((state) => state.portfolio)
   const username = useAppSelector((state) => state.settings.adminUsername)
@@ -26,8 +29,14 @@ export default function SettingsPage() {
     const user = String(formData.get('username') ?? '').trim()
     const password = String(formData.get('password') ?? '')
     const confirm = String(formData.get('confirm') ?? '')
-    if (!user || password.length < 6 || password !== confirm) return t('admin.passwordMismatch')
-    await api('/auth/credentials', { method: 'PUT', body: JSON.stringify({ username: user, password }) }).catch(() => null)
+    if (!user || password.length < MIN_PASSWORD_LENGTH || password !== confirm) return t('admin.passwordMismatch')
+    if (isServerSession) {
+      // The server account is the one that matters; don't report success if it wasn't changed.
+      const saved = await api('/auth/credentials', { method: 'PUT', body: JSON.stringify({ username: user, password }) })
+        .then(() => true)
+        .catch(() => false)
+      if (!saved) return t('admin.credentialsFailed')
+    }
     dispatch(setCredentials({ username: user, passwordHash: await sha256(password) }))
     await login(user, password)
     notify(t('common.saved'))

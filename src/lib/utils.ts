@@ -26,6 +26,8 @@ export const siteUrl = (path: string) => `${location.origin}${assetUrl(path)}`
 // without it the API is expected on the same origin (local dev uses the Vite proxy).
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
 export const apiBase = API_URL ? `${API_URL}/api` : `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api`
+/** True when a separate backend is configured (VITE_API_URL). Admin login then goes only through it. */
+export const hasApiUrl = Boolean(API_URL)
 /** True for a static build with no backend configured (e.g. GitHub Pages without VITE_API_URL). */
 export const isStaticSite = import.meta.env.VITE_STATIC === 'true' && !API_URL
 
